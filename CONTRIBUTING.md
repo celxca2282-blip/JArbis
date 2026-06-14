@@ -13,7 +13,9 @@
 
 ## Для разработчиков
 
-**Требования:** Python **3.11** или **3.12** (не 3.14), Windows 10/11.
+**В 1 клик (Windows):** после `git clone` запустите **`install.bat`** в корне проекта.
+
+**Вручную** (если нужен контроль):
 
 ```powershell
 git clone https://github.com/ВАШ_ЛОГИН/JArbis.git
@@ -22,7 +24,6 @@ python -m venv venv
 .\venv\Scripts\activate
 pip install -r requirements-dev.txt
 copy .env.example .env
-# Вписать OPENAI_API_KEY (OpenRouter) — опционально для LLM
 python scripts/download_voice.py
 python main.py
 ```

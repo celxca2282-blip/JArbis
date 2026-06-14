@@ -62,17 +62,14 @@ TESTER_GUIDE = """JArbis — гайд для тестера
   • Ключ OpenRouter для «умных» ответов (см. ниже)
 
 
-3. ПЕРВЫЙ ЗАПУСК
-----------------
+3. ПЕРВЫЙ ЗАПУСК (в 1 клик)
+---------------------------
   1) Распакуй папку JArbis в удобное место (например, C:\\JArbis-test).
-  2) Скопируй файл .env.example и переименуй копию в .env
-  3) Открой .env блокнотом и вставь свой OPENAI_API_KEY от OpenRouter:
+  2) Дважды кликни **УСТАНОВИТЬ.bat** — создаст .env из шаблона.
+  3) Открой .env блокнотом и вставь OPENAI_API_KEY от OpenRouter (если нужен ИИ):
        https://openrouter.ai/
-     Строка выглядит так:
-       OPENAI_API_KEY=sk-or-v1-...
-     Без ключа работают простые команды (открыть настройки, калькулятор и т.д.),
-     но сложные вопросы к ИИ — нет.
-  4) Запусти JArbis.exe двойным щелчком.
+     Без ключа работают простые команды; сложные вопросы к ИИ — нет.
+  4) Дважды кликни **ЗАПУСТИТЬ.bat** (или JArbis.exe).
   5) Разреши доступ к микрофону, если Windows спросит.
   6) При первом запуске подожди 1–2 минуты — скачиваются голос и модели.
 
@@ -124,6 +121,54 @@ TESTER_GUIDE = """JArbis — гайд для тестера
 
 Удачного теста!
 """
+
+# Bat-файлы для тестера (exe-сборка)
+DIST_INSTALL_BAT = """@echo off
+chcp 65001 >nul
+title JArbis — установка
+cd /d "%~dp0"
+
+echo.
+echo  JArbis — подготовка к первому запуску
+echo.
+
+if not exist ".env" (
+    if exist ".env.example" (
+        copy /Y ".env.example" ".env" >nul
+        echo  [OK] Создан файл .env
+    ) else (
+        echo  [!!] Нет .env.example
+    )
+) else (
+    echo  [OK] Файл .env уже есть
+)
+
+echo.
+echo  Дальше:
+echo    1. При необходимости откройте .env и вставьте OPENAI_API_KEY
+echo    2. Запустите ЗАПУСТИТЬ.bat
+echo.
+echo  Подробности: КАК_ТЕСТИРОВАТЬ.txt
+echo.
+pause
+"""
+
+DIST_RUN_BAT = """@echo off
+chcp 65001 >nul
+cd /d "%~dp0"
+if not exist "JArbis.exe" (
+    echo Не найден JArbis.exe — распакуйте архив полностью.
+    pause
+    exit /b 1
+)
+start "" "JArbis.exe"
+"""
+
+
+def _write_dist_launchers(dist_dir: Path) -> None:
+    """Создаёт УСТАНОВИТЬ.bat и ЗАПУСТИТЬ.bat для exe-сборки."""
+    (dist_dir / "УСТАНОВИТЬ.bat").write_text(DIST_INSTALL_BAT, encoding="utf-8")
+    (dist_dir / "ЗАПУСТИТЬ.bat").write_text(DIST_RUN_BAT, encoding="utf-8")
 
 
 def _remove_path(path: Path) -> bool:
@@ -185,6 +230,8 @@ def prepare_tester_dist(dist_dir: Path = DIST_DIR) -> list[str]:
 
     guide_path = dist_dir / "КАК_ТЕСТИРОВАТЬ.txt"
     guide_path.write_text(TESTER_GUIDE, encoding="utf-8")
+
+    _write_dist_launchers(dist_dir)
 
     old_guide = dist_dir / "КАК_ЗАПУСТИТЬ.txt"
     if old_guide.is_file():

@@ -7,7 +7,21 @@
 > Без `OPENAI_API_KEY` в `.env` работают **локальные команды** (настройки, калькулятор, открытие приложений) и **быстрый режим**.  
 > Сложные вопросы к ИИ требуют ключ [OpenRouter](https://openrouter.ai/).
 
-## Установка (разработка)
+## Установка в 1 клик (Windows)
+
+После `git clone` или распаковки исходников:
+
+```
+install.bat
+```
+
+Скрипт сам: создаст `venv`, установит зависимости, скопирует `.env.example` → `.env`, скачает голос Piper.
+
+Запуск после установки: **`ЗАПУСТИТЬ.bat`** или `venv\Scripts\python.exe main.py`
+
+---
+
+## Установка вручную (разработка)
 
 ```bash
 python -m venv venv
@@ -30,9 +44,13 @@ python scripts/download_voice.py
 pip install -r requirements-optional-silero.txt
 ```
 
-## Установка (тестер, без git)
+## Установка (тестер, exe из Releases)
 
-Скачайте zip из [GitHub Releases](docs/GITHUB.md) — Python не нужен. См. `КАК_ТЕСТИРОВАТЬ.txt` в архиве.
+1. Скачай zip из [GitHub Releases](docs/GITHUB.md)
+2. **`УСТАНОВИТЬ.bat`** → создаст `.env`
+3. **`ЗАПУСТИТЬ.bat`** → запуск
+
+Python не нужен. Подробнее: `КАК_ТЕСТИРОВАТЬ.txt` в архиве.
 
 ## Запуск
 
