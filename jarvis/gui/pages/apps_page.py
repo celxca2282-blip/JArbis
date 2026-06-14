@@ -2,11 +2,13 @@
 """Ярлыки: программа, ссылка, папка + опциональный скан игр."""
 
 import customtkinter as ctk
+import tkinter as tk
 from tkinter import filedialog, messagebox
 
 from jarvis.commands import game_scanner, user_apps_store
 from jarvis.core.assistant_engine import AssistantEngine
 from jarvis.gui import theme
+from jarvis.gui.clipboard_utils import bind_all_entries_in, setup_modal_dialog_clipboard
 from jarvis.gui.widgets.page_toolbar import PageToolbar
 from jarvis.gui.widgets.shortcut_tile import ShortcutTile
 
@@ -137,6 +139,7 @@ class AppsPage(ctk.CTkFrame):
         dialog.title("Импорт игр")
         dialog.geometry("680x520")
         dialog.configure(fg_color=theme.COLOR_BG_ALT)
+        dialog.transient(self.winfo_toplevel())
         dialog.grab_set()
 
         header = theme.panel_frame(dialog)
@@ -191,7 +194,9 @@ class AppsPage(ctk.CTkFrame):
         dialog.title("Ярлык")
         dialog.geometry("560x540")
         dialog.configure(fg_color=theme.COLOR_BG_ALT)
+        dialog.transient(self.winfo_toplevel())
         dialog.grab_set()
+        setup_modal_dialog_clipboard(dialog)
 
         type_var = ctk.StringVar(value=app.action_type if app else user_apps_store.ACTION_EXE)
         name_var = ctk.StringVar(value=app.display_name if app else "")
@@ -240,6 +245,7 @@ class AppsPage(ctk.CTkFrame):
             else:
                 folder_lbl.pack(anchor="w", padx=16, pady=(8, 0))
                 folder_row.pack(fill="x", padx=16)
+            bind_all_entries_in(form, dialog)
 
         def browse_exe() -> None:
             p = filedialog.askopenfilename(filetypes=[("EXE", "*.exe")])
@@ -280,10 +286,19 @@ class AppsPage(ctk.CTkFrame):
         type_var.trace_add("write", rebuild_fields)
         rebuild_fields()
 
+        ctk.CTkLabel(
+            form,
+            text="Ctrl+V, Shift+Insert или ПКМ — вставить из буфера",
+            font=theme.FONT_SMALL,
+            text_color=theme.COLOR_TEXT_MUTED,
+        ).pack(anchor="w", padx=16, pady=(0, 4))
+
         ctk.CTkLabel(form, text="Триггеры (через запятую)", font=theme.FONT_SMALL, text_color=theme.COLOR_TEXT_DIM).pack(
             anchor="w", padx=16, pady=(8, 0)
         )
         theme.styled_entry(form, textvariable=triggers_var, width=460).pack(padx=16)
+        bind_all_entries_in(form, dialog)
+
         ctk.CTkCheckBox(form, text="Включено", variable=enabled_var, fg_color=theme.COLOR_ACCENT).pack(
             anchor="w", padx=16, pady=10
         )
@@ -323,3 +338,18 @@ class AppsPage(ctk.CTkFrame):
             self.refresh()
 
         theme.ghost_button(form, "Сохранить", save, accent=True).pack(pady=14)
+
+        def focus_first_field() -> None:
+            for widget in (url_entry, path_entry, folder_entry):
+                try:
+                    if widget.winfo_ismapped():
+                        inner = getattr(widget, "_entry", None)
+                        if inner is not None:
+                            inner.focus_set()
+                        else:
+                            widget.focus_set()
+                        return
+                except tk.TclError:
+                    continue
+
+        dialog.after(80, focus_first_field)

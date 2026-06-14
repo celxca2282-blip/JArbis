@@ -9,6 +9,7 @@ import jarvis.commands.command_registry as command_registry
 from jarvis.commands import scenario_store, user_apps_store
 from jarvis.core.assistant_engine import AssistantEngine
 from jarvis.gui import theme
+from jarvis.gui.dialog_utils import ask_string
 
 
 class ScenariosPage(ctk.CTkFrame):
@@ -226,8 +227,7 @@ class ScenariosPage(ctk.CTkFrame):
             self._render_steps()
 
     def _add_url(self) -> None:
-        dialog = ctk.CTkInputDialog(text="URL:", title="Добавить URL")
-        url = dialog.get_input()
+        url = ask_string(self, "Добавить URL", "URL (https://…)")
         if url:
             self._steps.append(scenario_store.ScenarioStep(type="url", url=url, delay_sec=0))
             self._render_steps()
@@ -237,8 +237,7 @@ class ScenariosPage(ctk.CTkFrame):
         names = [e.display_name for e in entries]
         if not names:
             return
-        picker = ctk.CTkInputDialog(text=f"Приложение (например {names[0]}):", title="App index")
-        query = picker.get_input()
+        query = ask_string(self, "App index", f"Приложение (например {names[0]}):")
         if query:
             self._steps.append(scenario_store.ScenarioStep(type="app_index", query=query, delay_sec=0))
             self._render_steps()
@@ -253,15 +252,13 @@ class ScenariosPage(ctk.CTkFrame):
 
     def _add_command(self) -> None:
         ids = command_registry.get_allowed_command_ids()
-        picker = ctk.CTkInputDialog(text=f"command_id (например {ids[0]}):", title="Системная команда")
-        cmd = picker.get_input()
+        cmd = ask_string(self, "Системная команда", f"command_id (например {ids[0]}):")
         if cmd:
             self._steps.append(scenario_store.ScenarioStep(type="command", command_id=cmd, delay_sec=0))
             self._render_steps()
 
     def _add_delay(self) -> None:
-        picker = ctk.CTkInputDialog(text="Секунды:", title="Пауза")
-        raw = picker.get_input()
+        raw = ask_string(self, "Пауза", "Секунды:", initial="1")
         try:
             sec = float(raw or "1")
         except ValueError:

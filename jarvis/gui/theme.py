@@ -217,7 +217,9 @@ def icon_button(parent, text: str, command=None, **kwargs) -> ctk.CTkButton:
 
 def styled_entry(parent, placeholder: str = "", **kwargs) -> ctk.CTkEntry:
     """Поле ввода в стиле HUD."""
-    return ctk.CTkEntry(
+    from jarvis.gui.clipboard_utils import bind_entry_clipboard
+
+    entry = ctk.CTkEntry(
         parent,
         placeholder_text=placeholder,
         height=INPUT_HEIGHT,
@@ -230,6 +232,12 @@ def styled_entry(parent, placeholder: str = "", **kwargs) -> ctk.CTkEntry:
         font=FONT_BODY,
         **kwargs,
     )
+    try:
+        # after_idle — _entry уже создан; иначе бинды могут не сработать
+        entry.after_idle(lambda e=entry: bind_entry_clipboard(e))
+    except Exception:
+        pass
+    return entry
 
 
 def styled_textbox(parent, **kwargs) -> ctk.CTkTextbox:
