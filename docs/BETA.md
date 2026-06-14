@@ -50,14 +50,16 @@
 
 ## Чеклист публикации beta на GitHub
 
-### Репозиторий (один раз)
+### Репозиторий (один раз) — beta.1 ✅
 
-- [ ] Репозиторий **Public**
-- [ ] В описании репо: *«Voice assistant for Windows — public beta»*
-- [ ] Topics: `voice-assistant`, `windows`, `python`, `whisper`, `beta`
-- [ ] README с beta-баннером (см. корень репо)
-- [ ] `LICENSE` (MIT — если исходники открыты)
-- [ ] `.env` **не** в git (`git status` чистый от секретов)
+- [x] Репозиторий **Public**
+- [x] В описании репо: *«Voice assistant for Windows — public beta»*
+- [x] Topics: `voice-assistant`, `windows`, `python`, `beta`
+- [x] README с beta-баннером (см. корень репо)
+- [x] `LICENSE` (MIT)
+- [x] `.env` **не** в git
+
+**Дальше:** [MAINTENANCE.md](MAINTENANCE.md) — режим сопровождения, patch-release `beta.2+`.
 
 ### Релиз
 
@@ -70,11 +72,13 @@ python scripts/make_release_zip.py
 python scripts/verify_exe_bundle.py
 ```
 
-- [ ] Tag: `v1.0.0-beta.1` (совпадает с `config.VERSION`)
-- [ ] Title: `JArbis v1.0.0-beta.1 — Public Beta (Windows x64)`
-- [ ] Release notes: см. шаблон ниже
-- [ ] Asset: `releases/JArbis-v1.0.0-beta.1-win64.zip`
-- [ ] Отметить **Pre-release** на GitHub (рекомендуется для beta)
+- [x] Tag: `v1.0.0-beta.1` (совпадает с `config.VERSION`)
+- [x] Title: `JArbis v1.0.0-beta.1 — Public Beta (Windows x64)`
+- [x] Asset: `JArbis-v1.0.0-beta.1-win64.zip` (~1.4 ГБ)
+- [x] **Pre-release** на GitHub
+
+Ссылка для тестеров: https://github.com/celxca2282-blip/JArbis/releases/tag/v1.0.0-beta.1  
+(`/releases/latest` не работает, пока релиз pre-release — это нормально.)
 
 ### Шаблон Release notes
 
@@ -150,6 +154,8 @@ GitHub Releases     →  только zip с JArbis.exe (~1.4 ГБ)
 
 ## Ссылки
 
+- [MAINTENANCE.md](MAINTENANCE.md) — режим сопровождения (maintainer)
+- [ROADMAP.md](ROADMAP.md) — отложенные фичи
 - [README](../README.md)
 - [CONTRIBUTING](../CONTRIBUTING.md)
 - [GITHUB.md](GITHUB.md)

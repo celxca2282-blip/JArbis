@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Скачать beta (exe)
+    url: https://github.com/celxca2282-blip/JArbis/releases/tag/v1.0.0-beta.1
+    about: Windows x64 zip — не «Source code»
+  - name: Документация beta
+    url: https://github.com/celxca2282-blip/JArbis/blob/main/docs/BETA.md
+    about: Известные ограничения и как тестировать
+  - name: Вопрос по установке (Issue)
+    url: https://github.com/celxca2282-blip/JArbis/issues/new?template=bug_report.md
+    about: Если exe не запускается — используй шаблон бага

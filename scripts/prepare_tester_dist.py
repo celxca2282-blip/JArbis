@@ -108,6 +108,8 @@ TESTER_GUIDE = """JArbis — гайд для тестера
 6. ЕСЛИ ЧТО-ТО СЛОМАЛОСЬ (PUBLIC BETA)
 --------------------------------------
   • Это beta — баги возможны, feedback очень помогает.
+  • Скачать обновление beta:
+      https://github.com/celxca2282-blip/JArbis/releases/tag/v1.0.0-beta.1
   • GitHub Issues (нужен аккаунт):
       https://github.com/celxca2282-blip/JArbis/issues
   • Шаблон «Сообщение о баге» + приложи data/jarvis.log

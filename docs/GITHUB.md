@@ -95,14 +95,26 @@ python scripts/make_release_zip.py
 ### Что писать тестеру
 
 ```
-Скачай beta (Pre-release):
-https://github.com/celxca2282-blip/JArbis/releases/latest
+Скачай beta:
+https://github.com/celxca2282-blip/JArbis/releases/tag/v1.0.0-beta.1
 
-Файл: JArbis-v…-win64.zip (не Source code)
+Файл: JArbis-v1.0.0-beta.1-win64.zip (не Source code)
 Внутри — УСТАНОВИТЬ.bat, ЗАПУСТИТЬ.bat, КАК_ТЕСТИРОВАТЬ.txt
 
 Баги и идеи — Issues на GitHub.
 ```
+
+> Пока релиз **Pre-release**, ссылка `/releases/latest` не ведёт на beta — используй прямой tag URL.
+
+---
+
+## Режим сопровождения (ты ушёл в другой проект)
+
+1. Раз в 1–2 недели: `python scripts/check_maintainer.py --online`
+2. Отвечай в Issues; фикси только то, что реально мешает
+3. Patch-release `beta.2` — см. **[MAINTENANCE.md](MAINTENANCE.md)**
+4. Новые фичи — только из **[ROADMAP.md](ROADMAP.md)** и только по запросу
+
 ---
 
 ## Шаг 5. Тестер: как скачать и запустить

@@ -6,13 +6,15 @@
 
 ## Быстрый feedback (без Python)
 
-1. Скачай **Pre-release** из [GitHub Releases](https://github.com/celxca2282-blip/JArbis/releases) (`JArbis-v…-win64.zip`).
+1. Скачай beta: [v1.0.0-beta.1](https://github.com/celxca2282-blip/JArbis/releases/tag/v1.0.0-beta.1) (`JArbis-v…-win64.zip`, не Source code).
 2. Прочитай `КАК_ТЕСТИРОВАТЬ.txt` в архиве.
 3. **Баг** → [Issues → Сообщение о баге](https://github.com/celxca2282-blip/JArbis/issues/new?template=bug_report.md)
 4. **Идея / отзыв** → [Issues → Идея или feedback](https://github.com/celxca2282-blip/JArbis/issues/new?template=feature_request.md)
 5. **Не прикладывай `.env`** — там API-ключ.
 
 Подробнее: [docs/BETA.md](docs/BETA.md) · [docs/GITHUB.md](docs/GITHUB.md)
+
+> **Maintainer:** проект в режиме сопровождения — [docs/MAINTENANCE.md](docs/MAINTENANCE.md). Feature request принимаются, но большие фичи — по приоритету feedback.
 
 ## Для разработчиков
 

@@ -5,9 +5,9 @@
 
 Голосовой помощник с wake-word, распознаванием речи (Whisper), локальной озвучкой (Piper HD), управлением Windows и опциональным LLM (OpenRouter).
 
-> **Публичная beta** — проект в активной разработке. Возможны баги, неточное распознавание речи, тормоза на слабом CPU, сбои GUI или exe.  
+> **Публичная beta (режим сопровождения)** — стабильная база, новые фичи по feedback. Возможны баги, неточное распознавание, тормоза на слабом CPU.  
 > **Помогите улучшить JArbis:** [сообщить о баге](https://github.com/celxca2282-blip/JArbis/issues/new?template=bug_report.md) · [идея / feedback](https://github.com/celxca2282-blip/JArbis/issues/new?template=feature_request.md)  
-> Подробнее: **[docs/BETA.md](docs/BETA.md)**
+> Maintainer: **[docs/MAINTENANCE.md](docs/MAINTENANCE.md)** · пользователям: **[docs/BETA.md](docs/BETA.md)**
 
 **Python 3.11 или 3.12** (рекомендуется; 3.14 пока не тестировался).
 
@@ -16,9 +16,10 @@
 
 ## Скачать beta (без Python)
 
-1. Открой **[Releases](https://github.com/celxca2282-blip/JArbis/releases)** → последний **Pre-release**
-2. Скачай **`JArbis-v…-win64.zip`** (не «Source code»)
-3. Распакуй → **`УСТАНОВИТЬ.bat`** → **`ЗАПУСТИТЬ.bat`**
+**Прямая ссылка:** [v1.0.0-beta.1](https://github.com/celxca2282-blip/JArbis/releases/tag/v1.0.0-beta.1) → файл **`JArbis-v1.0.0-beta.1-win64.zip`** (не «Source code»)
+
+1. Скачай zip по ссылке выше (или [все Releases](https://github.com/celxca2282-blip/JArbis/releases))
+2. Распакуй → **`УСТАНОВИТЬ.bat`** → **`ЗАПУСТИТЬ.bat`**
 
 Инструкция в архиве: `КАК_ТЕСТИРОВАТЬ.txt`
 
@@ -262,8 +263,8 @@ python scripts/build_icons.py
 pip install pyinstaller
 python scripts/build_exe.py
 
-# Zip для тестера / GitHub Release
-python scripts/make_release_zip.py --version 1.0.0
+# Zip для тестера / GitHub Release (версия из config.VERSION)
+python scripts/make_release_zip.py
 
 # Проверить, что в exe попали vosk/piper/VAD и прочие критичные файлы
 python scripts/verify_exe_bundle.py
@@ -281,6 +282,8 @@ python scripts/verify_exe_bundle.py
 
 ## GitHub и релизы
 
+- **[docs/MAINTENANCE.md](docs/MAINTENANCE.md)** — режим сопровождения beta (что делать раз в N дней)
+- **[docs/ROADMAP.md](docs/ROADMAP.md)** — отложенные фичи (не в текущем спринте)
 - **[docs/GITHUB.md](docs/GITHUB.md)** — Releases, Issues, workflow
 - **[docs/BETA.md](docs/BETA.md)** — чеклист публикации beta, версии, открытый vs закрытый код
 
