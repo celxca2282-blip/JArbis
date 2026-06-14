@@ -1,24 +1,27 @@
-# Участие в разработке JArbis
+# Участие в JArbis (public beta)
 
-Спасибо, что помогаете улучшать проект.
+Спасибо, что пробуете **beta** и помогаете улучшить проект.
 
-## Для тестеров (без Python)
+> Статус: **public beta** — баги ожидаемы. Любой feedback ценен.
 
-1. Скачайте последний **Release** на GitHub (zip для Windows, не Source code).
-2. Прочитайте `КАК_ТЕСТИРОВАТЬ.txt` в архиве.
-3. Баги — **Issues** → шаблон «Сообщение о баге».
-4. Не прикладывайте `.env` и не публикуйте API-ключи.
+## Быстрый feedback (без Python)
 
-Подробнее: [docs/GITHUB.md](docs/GITHUB.md)
+1. Скачай **Pre-release** из [GitHub Releases](https://github.com/celxca2282-blip/JArbis/releases) (`JArbis-v…-win64.zip`).
+2. Прочитай `КАК_ТЕСТИРОВАТЬ.txt` в архиве.
+3. **Баг** → [Issues → Сообщение о баге](https://github.com/celxca2282-blip/JArbis/issues/new?template=bug_report.md)
+4. **Идея / отзыв** → [Issues → Идея или feedback](https://github.com/celxca2282-blip/JArbis/issues/new?template=feature_request.md)
+5. **Не прикладывай `.env`** — там API-ключ.
+
+Подробнее: [docs/BETA.md](docs/BETA.md) · [docs/GITHUB.md](docs/GITHUB.md)
 
 ## Для разработчиков
 
-**В 1 клик (Windows):** после `git clone` запустите **`install.bat`** в корне проекта.
+**В 1 клик (Windows):** после `git clone` запустите **`install.bat`**.
 
-**Вручную** (если нужен контроль):
+**Вручную:**
 
 ```powershell
-git clone https://github.com/ВАШ_ЛОГИН/JArbis.git
+git clone https://github.com/celxca2282-blip/JArbis.git
 cd JArbis
 python -m venv venv
 .\venv\Scripts\activate
@@ -28,35 +31,32 @@ python scripts/download_voice.py
 python main.py
 ```
 
-Опционально Silero TTS (тяжёлый torch):
-
-```powershell
-pip install -r requirements-optional-silero.txt
-```
-
 ### Тесты
 
 ```powershell
 python -m pytest tests/
 ```
 
-Сетевые тесты (если появятся): `python -m pytest tests/ -m network`
-
-### Сборка exe
+### Сборка exe для Release
 
 ```powershell
 pip install pyinstaller
 python scripts/build_exe.py
-python scripts/make_release_zip.py --version X.Y.Z
+python scripts/make_release_zip.py
 ```
+
+Версия берётся из `config.VERSION`. На GitHub отметьте **Pre-release** для beta.
 
 ### Правила
 
 - Комментарии в коде — на русском.
 - Не коммитьте `.env`, `data/gui_settings.json`, логи, `dist/`, модели голосов.
 - Перед PR: `pytest` зелёный.
-- Минимальный diff: не рефакторить несвязанный код.
+- Минимальный diff.
 
 ## Версионирование
 
-Версия в `config.VERSION`. Для релиза: тег `vX.Y.Z` + zip в GitHub Releases.
+- Beta: `1.0.0-beta.1`, `1.0.0-beta.2`, …
+- Stable (позже): `1.0.0`
+
+Версия в `config.VERSION`. Тег git: `v` + VERSION.

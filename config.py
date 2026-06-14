@@ -23,7 +23,7 @@ ENV_PATH = BASE_DIR / ".env"
 load_dotenv(dotenv_path=ENV_PATH)
 
 # Версия приложения (README, GUI, bug report, Releases)
-VERSION = "1.0.0"
+VERSION = "1.0.0-beta.1"
 
 
 # Надёжно преобразует строку из .env в bool (обратная совместимость)

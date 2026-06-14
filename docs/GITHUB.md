@@ -1,6 +1,10 @@
-# GitHub: работа с тестером
+# GitHub: публичная beta
 
-Коротко: **исходники** — в репозитории, **готовый exe** — в **Releases** (не в git: папка ~2 ГБ).
+**Исходники** — в публичном репозитории (MIT). **Готовый exe** — только в **Releases** (~1.4 ГБ, не в git).
+
+Пользователям: скачивайте **`JArbis-v…-win64.zip`**, не «Source code» на странице Release.
+
+Подробный чеклист beta: **[BETA.md](BETA.md)**
 
 ---
 
@@ -8,11 +12,10 @@
 
 | Кто | Что делает |
 |-----|------------|
-| **Ты (разработчик)** | Пушишь код, собираешь exe, выкладываешь zip в Release, читаешь Issues |
-| **Тестер** | Скачивает zip из Releases, тестирует, пишет баги в Issues |
+| **Maintainer** | Код, CI, сборка exe, Pre-release на GitHub, ответы в Issues |
+| **Пользователь / тестер** | Скачивает zip, тестирует, Issues (баг / feedback) |
 
-Тестеру **не нужны** Python, pip и git — только браузер и GitHub-аккаунт (для Issues).
-
+Python и git **не нужны** для использования exe — только браузер и аккаунт GitHub (для Issues).
 ---
 
 ## Шаг 1. Установить Git (один раз, на твоём ПК)
@@ -32,7 +35,7 @@
 
 1. [github.com/new](https://github.com/new)
 2. Имя, например: `JArbis`
-3. **Private** — если не хочешь открытый код; **Public** — если ок для всех
+3. **Public** — для публичной beta (рекомендуется)
 4. Без README / .gitignore (они уже в проекте)
 5. Создать репозиторий
 
@@ -78,27 +81,28 @@ python scripts/build_exe.py
 python scripts/make_release_zip.py
 ```
 
-Появится файл: `releases/JArbis-v1.0.0-win64.zip`
+Появится: `releases/JArbis-v{VERSION}-win64.zip` (VERSION из `config.py`)
 
-### Загрузка на GitHub
+### Загрузка на GitHub (beta)
 
-1. Репозиторий → **Releases** → **Draft a new release**
-2. Tag: `v1.0.0` (новая версия каждый раз: `v1.0.1`, …)
-3. Title: `JArbis v1.0.0 — Windows x64`
-4. Описание: что изменилось (коротко)
-5. Прикрепить `releases/JArbis-v1.0.0-win64.zip`
-6. **Publish release**
-
+1. **Releases** → **Draft a new release**
+2. Tag: `v1.0.0-beta.1` (как в `config.VERSION`)
+3. Title: `JArbis v1.0.0-beta.1 — Public Beta (Windows x64)`
+4. Описание: что изменилось + ссылка на Issues
+5. **Pre-release** — включить
+6. Прикрепить zip из `releases/`
+7. **Publish release**
 ### Что писать тестеру
 
 ```
-Скачай последний релиз:
-https://github.com/ТВОЙ_ЛОГИН/JArbis/releases/latest
+Скачай beta (Pre-release):
+https://github.com/celxca2282-blip/JArbis/releases/latest
 
-Внутри архива — папка JArbis, читай КАК_ТЕСТИРОВАТЬ.txt
-Баги — через Issues на GitHub (шаблон «Сообщение о баге»).
+Файл: JArbis-v…-win64.zip (не Source code)
+Внутри — УСТАНОВИТЬ.bat, ЗАПУСТИТЬ.bat, КАК_ТЕСТИРОВАТЬ.txt
+
+Баги и идеи — Issues на GitHub.
 ```
-
 ---
 
 ## Шаг 5. Тестер: как скачать и запустить

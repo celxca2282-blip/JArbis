@@ -339,6 +339,10 @@ def build_llm_commands_section() -> str:
         "9. Доступные команды:",
         "[EXEC:open_browser], [EXEC:lock_pc], [EXEC:get_weather], [EXEC:media_play_pause],",
         "[EXEC:media_next], [EXEC:volume_mute], [EXEC:volume_X], где X — число от 0 до 100.",
+        "Звуковая матрица (громкость приложений): [EXEC:app_volume_discord_40], [EXEC:app_mute_spotify],",
+        "[EXEC:app_unmute_discord], [EXEC:list_audio_sessions],",
+        "[EXEC:audio_device_headphones], [EXEC:audio_device_speakers].",
+        "Формат app_volume: app_volume_<имя>_<0-100>, имя латиницей: discord, chrome, steam, spotify, game.",
     ]
 
     for command in SIMPLE_COMMANDS:

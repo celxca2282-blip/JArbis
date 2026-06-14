@@ -15,7 +15,7 @@ from urllib.request import Request, urlopen
 import keyboard
 from pycaw.pycaw import AudioUtilities
 
-from jarvis.commands import app_scanner
+from jarvis.commands import app_scanner, audio_mixer
 from jarvis.commands.app_scanner import AppEntry
 from jarvis.commands import command_registry
 from jarvis.ai import memory_module
@@ -456,6 +456,16 @@ def execute_system_command(command_name: str, *args, **kwargs) -> CommandResult:
             command = ALLOWED_COMMANDS.get("volume")
             return command(int(percent_text)) if command else False
 
+        # Звуковая матрица: громкость приложений, устройства
+        if (
+            command_name.startswith("app_volume_")
+            or command_name.startswith("app_mute_")
+            or command_name.startswith("app_unmute_")
+            or command_name.startswith("audio_device_")
+            or command_name == "list_audio_sessions"
+        ):
+            return audio_mixer.execute_audio_command(command_name)
+
         command = ALLOWED_COMMANDS.get(command_name)
         if command is None:
             logger.warning("Попытка вызвать незарегистрированную команду: %s", command_name)
@@ -564,6 +574,14 @@ def check_local_keywords(text: str) -> Optional[str]:
                 return _run_local_skill(action_id)
             continue
 
+    audio_command = audio_mixer.parse_local_audio_command(text)
+    if audio_command:
+        logger.info("Локальное совпадение: звук %s", audio_command)
+        result = audio_mixer.execute_audio_command(audio_command)
+        if result is False:
+            return "Не удалось выполнить команду звука, сэр."
+        return str(result)
+
     weather_cmd = command_registry.get_simple_command("get_weather")
     if weather_cmd and weather_cmd.fuzzy_keywords:
         if any(word.startswith(kw) for word in words for kw in ("погод", "температур")) or _has_phrase(
@@ -625,4 +643,14 @@ def check_local_keywords(text: str) -> Optional[str]:
 
 
 def is_control_action(action_name: str) -> bool:
-    return action_name in command_registry.get_control_action_ids() or action_name.startswith("volume_")
+    if action_name.startswith("volume_"):
+        return True
+    if (
+        action_name.startswith("app_volume_")
+        or action_name.startswith("app_mute_")
+        or action_name.startswith("app_unmute_")
+        or action_name.startswith("audio_device_")
+        or action_name == "list_audio_sessions"
+    ):
+        return True
+    return action_name in command_registry.get_control_action_ids()

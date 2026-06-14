@@ -17,7 +17,17 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 DIST_DIR = ROOT / "dist" / "JArbis"
 RELEASES_DIR = ROOT / "releases"
-DEFAULT_VERSION = "1.0.0"
+
+
+# Берёт версию из config.py, чтобы zip совпадал с приложением
+def _default_version() -> str:
+    try:
+        sys.path.insert(0, str(ROOT))
+        import config
+
+        return config.VERSION
+    except Exception:
+        return "1.0.0-beta.1"
 
 
 def _zip_dir(source: Path, archive: Path) -> None:
@@ -36,7 +46,7 @@ def _zip_dir(source: Path, archive: Path) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Zip dist/JArbis для GitHub Release")
-    parser.add_argument("--version", default=DEFAULT_VERSION, help="Версия релиза, например 1.0.1")
+    parser.add_argument("--version", default=None, help="Версия релиза (по умолчанию — config.VERSION)")
     parser.add_argument("--skip-prepare", action="store_true", help="Не вызывать prepare_tester_dist")
     args = parser.parse_args()
 
@@ -50,7 +60,7 @@ def main() -> None:
 
         prepare_tester_dist(DIST_DIR)
 
-    version = args.version.strip().lstrip("v")
+    version = (args.version or _default_version()).strip().lstrip("v")
     archive = RELEASES_DIR / f"JArbis-v{version}-win64.zip"
 
     print(f"Упаковка: {DIST_DIR}")
@@ -63,7 +73,8 @@ def main() -> None:
         print("Внимание: близко к лимиту GitHub 2 ГБ на файл — проверь размер bundle.")
 
     print("\nДальше на GitHub:")
-    print("  Releases → Draft new release → tag v" + version)
+    print("  Releases -> Draft new release -> tag v" + version)
+    print("  Pre-release: включить для beta")
     print(f"  Прикрепить: {archive.name}")
 
 

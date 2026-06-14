@@ -1,11 +1,38 @@
-# Джарвис — голосовой ассистент для Windows
+# JArbis — голосовой ассистент для Windows
 
-Голосовой помощник с wake-word, распознаванием речи (Whisper), LLM (OpenRouter) и управлением Windows.
+[![Public Beta](https://img.shields.io/badge/status-public%20beta-orange)](docs/BETA.md)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
+Голосовой помощник с wake-word, распознаванием речи (Whisper), локальной озвучкой (Piper HD), управлением Windows и опциональным LLM (OpenRouter).
+
+> **Публичная beta** — проект в активной разработке. Возможны баги, неточное распознавание речи, тормоза на слабом CPU, сбои GUI или exe.  
+> **Помогите улучшить JArbis:** [сообщить о баге](https://github.com/celxca2282-blip/JArbis/issues/new?template=bug_report.md) · [идея / feedback](https://github.com/celxca2282-blip/JArbis/issues/new?template=feature_request.md)  
+> Подробнее: **[docs/BETA.md](docs/BETA.md)**
 
 **Python 3.11 или 3.12** (рекомендуется; 3.14 пока не тестировался).
 
 > Без `OPENAI_API_KEY` в `.env` работают **локальные команды** (настройки, калькулятор, открытие приложений) и **быстрый режим**.  
 > Сложные вопросы к ИИ требуют ключ [OpenRouter](https://openrouter.ai/).
+
+## Скачать beta (без Python)
+
+1. Открой **[Releases](https://github.com/celxca2282-blip/JArbis/releases)** → последний **Pre-release**
+2. Скачай **`JArbis-v…-win64.zip`** (не «Source code»)
+3. Распакуй → **`УСТАНОВИТЬ.bat`** → **`ЗАПУСТИТЬ.bat`**
+
+Инструкция в архиве: `КАК_ТЕСТИРОВАТЬ.txt`
+
+## Что может пойти не так (beta)
+
+| Симптом | Что попробовать |
+|--------|------------------|
+| «Не расслышал» / странные команды | Говорите чётче; USB-микрофон; в `.env` `STT_MODEL_NAME=medium` или `STT_FORCE_CPU=true` |
+| Долго «слушает» | Нормально на CPU; включите **быстрый режим** в настройках |
+| Обрезанный интерфейс | Масштаб Windows **100%**; развернуть окно |
+| Нет голоса / долгий первый запуск | Интернет; подождать 2–5 мин (скачиваются Piper и модели) |
+| ИИ не отвечает | Ключ OpenRouter в `.env`; без ключа — только локальные команды |
+
+Полный список ограничений: **[docs/BETA.md](docs/BETA.md)**
 
 ## Установка в 1 клик (Windows)
 
@@ -81,7 +108,7 @@ python main.py --cli    # консольный режим (отладка)
 
 | Возможность | JArbis |
 |---|---|
-| Open source | Да |
+| Open source (MIT) | Да — исходники в этом репозитории |
 | Свои ярлыки (exe / url / папка) + голосовые триггеры | Да (`data/user_apps.json`) |
 | Редактор сценариев | Да (`data/scenarios.json`) |
 | LLM + локальные команды | Да |
@@ -189,7 +216,8 @@ pip install nvidia-cublas-cu12
 ## Основные команды
 
 - **Windows:** «открой настройки», «открой калькулятор», «настройки wifi», «диспетчер задач»
-- **Медиа:** «пауза», «следующий трек», «выключи звук»
+- **Медиа:** «пауза», «следующий трек», «выключи звук», «приглуши дискорд на 40»
+- **Звук (beta):** громкость отдельных приложений, «переключи звук на наушники»
 - **Браузер:** «открой браузер»
 - **Погода:** «какая погода»
 - **Время:** «который час», «сколько времени»
@@ -243,9 +271,22 @@ python scripts/verify_exe_bundle.py
 
 После сборки скопируйте всю папку `dist/JArbis/` куда угодно или выложите `releases/JArbis-v*-win64.zip` в **GitHub Releases**. Рядом с `JArbis.exe` положите `.env` (из `.env.example`). Голос Piper скачивается при первом запуске или: `python scripts/download_voice.py`.
 
-## GitHub и тестирование
+## Feedback и участие
 
-Полная инструкция: **[docs/GITHUB.md](docs/GITHUB.md)** — репозиторий, Releases для тестера, Issues, без пересылки zip вручную.
+- **Баг:** [Issues → Сообщение о баге](https://github.com/celxca2282-blip/JArbis/issues/new?template=bug_report.md) + приложите `data/jarvis.log`
+- **Идея:** [Issues → Идея или feedback](https://github.com/celxca2282-blip/JArbis/issues/new?template=feature_request.md)
+- **Разработка:** [CONTRIBUTING.md](CONTRIBUTING.md)
+
+Не публикуйте `.env` и API-ключи.
+
+## GitHub и релизы
+
+- **[docs/GITHUB.md](docs/GITHUB.md)** — Releases, Issues, workflow
+- **[docs/BETA.md](docs/BETA.md)** — чеклист публикации beta, версии, открытый vs закрытый код
+
+## Лицензия
+
+[MIT](LICENSE) — исходный код открыт. Exe-сборка распространяется через Releases без отдельной лицензии на бинарник (as-is, beta).
 
 
 ## Структура проекта

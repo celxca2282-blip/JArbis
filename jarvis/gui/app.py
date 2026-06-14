@@ -119,7 +119,11 @@ class JarvisApp:
             footer, text="Движок: остановлен", font=theme.FONT_CAPTION, text_color=theme.COLOR_TEXT_DIM
         )
         self.lbl_sidebar_status.pack(anchor="w", pady=(4, 0))
-        ctk.CTkLabel(footer, text=f"v{config.VERSION} · Windows", font=theme.FONT_CAPTION, text_color=theme.COLOR_TEXT_MUTED).pack(
+        version_label = f"v{config.VERSION}"
+        if "beta" in config.VERSION.lower():
+            version_label += " · BETA"
+        version_label += " · Windows"
+        ctk.CTkLabel(footer, text=version_label, font=theme.FONT_CAPTION, text_color=theme.COLOR_TEXT_MUTED).pack(
             anchor="w", pady=(8, 0)
         )
 
