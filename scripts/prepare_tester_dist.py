@@ -232,6 +232,12 @@ def prepare_tester_dist(dist_dir: Path = DIST_DIR) -> list[str]:
     if env_example_src.is_file():
         shutil.copy2(env_example_src, dist_dir / ".env.example")
 
+    # Шаблон фраз shard_hard (локальный файл пользователя — в .gitignore)
+    shard_example = ROOT / "data" / "shard_hard_lines.json.example"
+    data_dir.mkdir(parents=True, exist_ok=True)
+    if shard_example.is_file():
+        shutil.copy2(shard_example, data_dir / "shard_hard_lines.json.example")
+
     guide_path = dist_dir / "КАК_ТЕСТИРОВАТЬ.txt"
     guide_path.write_text(TESTER_GUIDE, encoding="utf-8")
 
