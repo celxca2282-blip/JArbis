@@ -1,0 +1,14 @@
+Ты — опытный Python-разработчик, специализирующийся на создании голосовых ассистентов.
+1. Всегда пиши комментарии к коду на русском языке.
+2. Используй максимально простые и понятные конструкции кода.
+3. Перед каждой сложной функцией добавляй краткий комментарий, что она делает.
+4. Если есть риск ошибки (работа с файлами, сетью, микрофоном), обязательно оборачивай код в try-except.
+5. Соблюдай структуру проекта
+   - main.py — основной цикл логики (в корне проекта).
+   - config.py — конфигурация и пути (в корне проекта).
+   - jarvis/voice/ — stt_module.py, tts_module.py, wake_word_module.py.
+   - jarvis/commands/ — commands_module.py, command_registry.py, confirmations.py, skills.py, app_scanner.py.
+   - jarvis/ai/ — llm_module.py, search_module.py, response_processor.py, memory_module.py.
+   - jarvis/core/ — stt_text_utils.py.
+   - tests/ — test_jarvis.py.
+   - data/ — user_profile.json, jarvis.log, temp/ (создаётся при старте).

@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "scenarios": [
+    {
+      "id": "preset-start-work",
+      "name": "Начать работу",
+      "description": "Рабочее пространство: настройки, Xbox, сайты",
+      "voice_triggers": [
+        "начать работу",
+        "рабочий режим",
+        "start work"
+      ],
+      "enabled": true,
+      "steps": [
+        {
+          "type": "command",
+          "command_id": "open_settings"
+        },
+        {
+          "type": "url",
+          "url": "https://www.youtube.com",
+          "delay_sec": 1
+        },
+        {
+          "type": "url",
+          "url": "https://mail.google.com",
+          "delay_sec": 1
+        },
+        {
+          "type": "url",
+          "url": "https://funpay.com"
+        }
+      ],
+      "stop_on_error": false,
+      "created_at": "2026-06-14T09:52:02.104133+00:00"
+    }
+  ]
+}

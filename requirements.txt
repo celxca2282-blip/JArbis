@@ -1,0 +1,26 @@
+edge-tts
+pygame
+faster-whisper
+sounddevice
+numpy
+openai
+python-dotenv
+requests
+openwakeword
+pyaudio
+vosk
+keyboard
+pycaw
+comtypes
+ddgs
+customtkinter>=5.2.0
+pystray>=0.19.0
+Pillow>=10.0.0
+darkdetect>=0.8.0
+pyttsx3>=2.90
+# Piper HD — основной локальный голос (мужской, ~60 МБ)
+piper-tts>=1.2.0
+onnxruntime>=1.16.0
+# Silero — опционально, лёгкий запасной (нужен torch)
+torch>=2.1.0
+torchaudio>=2.1.0

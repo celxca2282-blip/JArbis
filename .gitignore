@@ -1,0 +1,46 @@
+# Секреты и личные данные
+.env
+*.env.local
+
+# Runtime data (создаётся при запуске)
+data/jarvis.log
+data/crash.log
+crash.log
+data/gui_settings.json
+data/user_profile.json
+data/user_apps.json
+data/apps_index.json
+data/.tray_hint_shown
+data/temp/
+data/voices/
+data/torch_hub/
+
+# Сборка и артефакты
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+venv/
+.venv/
+env/
+build/
+dist/
+*.egg-info/
+
+# IDE / ОС
+.vscode/
+.idea/
+.cursor/
+*.swp
+Thumbs.db
+Desktop.ini
+
+# Релизные zip (заливаются в GitHub Releases, не в git)
+releases/
+
+# Большие бинарники (голоса скачиваются скриптом)
+*.onnx

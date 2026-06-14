@@ -1,0 +1,159 @@
+# llm_module.py
+"""
+Модуль общения с LLM через OpenRouter API.
+Отправляет текст пользователя и возвращает ответ ассистента.
+"""
+
+import datetime
+import logging
+from typing import Optional
+
+from openai import OpenAI
+
+import config
+from jarvis.ai import memory_module
+from jarvis.commands.command_registry import build_llm_commands_section
+
+logger = logging.getLogger(__name__)
+logger.info("API-ключ в окружении: %s", "да" if config.API_KEY else "нет")
+SYSTEM_PROMPT_BASE = """
+Ты — Джарвис, ИИ-ассистент.
+ТВОИ ПРАВИЛА:
+1. Если запрос требует поиска актуальной информации, отвечай ТОЛЬКО тегом: [SEARCH:твой запрос].
+2. Если нужно выполнить команду, используй тег [EXEC:команда].
+3. Если ты не знаешь ответа или данные могут устареть — используй [SEARCH:...], не выдумывай.
+4. Если есть тег, не пиши лишнего текста до или после него.
+5. После получения результата поиска от системы, кратко резюмируй ответ для пользователя.
+6. Отвечай строго в 1-2 коротких предложениях, чистым текстом для живой речи.
+7. Не используй смайлики, эмодзи, списки и маркеры форматирования вроде звёздочек (*).
+8. Если называешь время, пиши его через двоеточие (например, 15:40) или словами.
+9. Если пользователь просит открыть/запустить/включить программу — ТОЛЬКО [OPEN_APP:имя] или [EXEC:...].
+   ЗАПРЕЩЕНО [SEARCH:...] для таких запросов. Не отказывай — всегда пробуй OPEN_APP.
+   WeMod → [OPEN_APP:wemod], Vanguard → [OPEN_APP:riot client], Yandex Music → [OPEN_APP:yandex music].
+   Только латиница в [OPEN_APP:...]. Теги только в квадратных скобках.
+"""
+
+# Клиент создаётся один раз при первом запросе
+_client: Optional[OpenAI] = None
+
+# История текущего диалога (последние 10 сообщений = 5 раундов)
+CONVERSATION_HISTORY: list[dict[str, str]] = []
+
+# Фразы для очистки краткосрочной истории диалога (не долговременного профиля)
+_CLEAR_MEMORY_PHRASES = (
+    "очисти память",
+    "забудь все",
+    "забудь всё",
+    "начнем заново",
+    "начнём заново",
+)
+
+
+# Создаёт и возвращает клиент OpenAI для OpenRouter API
+def _get_client() -> OpenAI:
+    global _client
+    if _client is None:
+        api_key = config.API_KEY
+        if not api_key:
+            logger.error("Не задан ключ OPENAI_API_KEY в переменных окружения")
+            raise ValueError("Не задан ключ OPENAI_API_KEY в переменных окружения")
+        logger.info("Инициализация клиента OpenRouter (длина ключа: %s)", len(api_key))
+        _client = OpenAI(
+            api_key=api_key,
+            base_url=config.OPENROUTER_BASE_URL,
+            default_headers={
+                "HTTP-Referer": "https://github.com/my-jarvis",
+                "X-Title": "My-Jarvis",
+            },
+        )
+        logger.info("Клиент OpenRouter готов")
+    return _client
+
+
+# Формирует системный промпт с актуальным временем и профилем пользователя
+def _build_system_message() -> str:
+    current_time = datetime.datetime.now().strftime("%H:%M")
+    memory_text = memory_module.get_memory_string()
+    commands_section = build_llm_commands_section()
+    return (
+        f"{SYSTEM_PROMPT_BASE}\n"
+        f"{commands_section}\n"
+        f"18. Если пользователь говорит 'Меня зовут [Имя]' или 'Я люблю [Хобби]', добавь тег "
+        f"[SAVE_MEMORY:ключ=значение] без лишнего текста вокруг тега.\n"
+        f"{memory_text}\n"
+        f"Текущее время: {current_time}."
+    )
+
+
+# Проверяет, просит ли пользователь очистить историю диалога
+def _is_clear_memory_request(user_text: str) -> bool:
+    normalized = user_text.lower().strip().replace("ё", "е")
+    return any(phrase.replace("ё", "е") in normalized for phrase in _CLEAR_MEMORY_PHRASES)
+
+
+# Очищает историю диалога (оставляет только системный промпт при следующем запросе)
+def clear_conversation_history() -> None:
+    global CONVERSATION_HISTORY
+    CONVERSATION_HISTORY.clear()
+    logger.info("История диалога очищена после команды управления")
+
+
+# Получает текстовый ответ от модели на сообщение пользователя
+def get_ai_response(user_text: str) -> str:
+    global CONVERSATION_HISTORY
+
+    try:
+        if _is_clear_memory_request(user_text):
+            CONVERSATION_HISTORY.clear()
+            logger.info("История диалога очищена")
+            return "Память очищена, сэр. Начинаем с чистого листа."
+
+        CONVERSATION_HISTORY.append({"role": "user", "content": user_text})
+        CONVERSATION_HISTORY[:] = CONVERSATION_HISTORY[-10:]
+
+        messages = [{"role": "system", "content": _build_system_message()}, *CONVERSATION_HISTORY]
+        logger.info(f"Запрос отправлен с контекстом из {len(CONVERSATION_HISTORY)} сообщений")
+
+        client = _get_client()
+        current_time = datetime.datetime.now().strftime("%H:%M")
+        logger.info("Отправка запроса в OpenRouter (модель: %s, время: %s)", config.MODEL_NAME, current_time)
+        response = client.chat.completions.create(
+            model=config.MODEL_NAME,
+            messages=messages,
+        )
+        response_text = (response.choices[0].message.content or "").strip()
+        logger.info("Ответ OpenRouter получен (%s символов)", len(response_text))
+
+        CONVERSATION_HISTORY.append({"role": "assistant", "content": response_text})
+        CONVERSATION_HISTORY[:] = CONVERSATION_HISTORY[-10:]
+
+        return response_text
+    except Exception as e:
+        logger.error(f"Ошибка API OpenRouter: {e}")
+        raise
+
+
+# Формирует краткий ответ пользователю на основе результатов веб-поиска
+def get_final_answer(search_results: str, original_query: str) -> str:
+    try:
+        client = _get_client()
+        response = client.chat.completions.create(
+            model=config.MODEL_NAME,
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        f"{_build_system_message()}\n"
+                        f"Ты получил результаты поиска по запросу '{original_query}'. "
+                        "Ответь пользователю кратко и точно, основываясь ТОЛЬКО на этих данных."
+                    ),
+                },
+                {"role": "user", "content": search_results},
+            ],
+        )
+        response_text = (response.choices[0].message.content or "").strip()
+        logger.info("Финальный ответ после поиска получен (%s символов)", len(response_text))
+        return response_text
+    except Exception as e:
+        logger.error("Ошибка формирования финального ответа после поиска: %s", e)
+        return "Не удалось обработать результаты поиска, сэр."
