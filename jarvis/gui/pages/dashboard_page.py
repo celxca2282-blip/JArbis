@@ -5,6 +5,7 @@ import customtkinter as ctk
 
 import config
 from jarvis.commands import user_apps_store
+from jarvis.core.performance_profiles import get_mode_badge
 from jarvis.core.assistant_engine import AssistantEngine
 from jarvis.gui import theme
 from jarvis.gui.widgets.conversation_bubble import ConversationBubble
@@ -179,10 +180,8 @@ class DashboardPage(ctk.CTkFrame):
         else:
             self.tile_engine.set_value("Остановлен", theme.COLOR_TEXT_DIM)
 
-        if config.FAST_MODE:
-            self.tile_mode.set_value("⚡ FAST", theme.COLOR_WARNING)
-        else:
-            self.tile_mode.set_value("◆ QUALITY", theme.COLOR_ACCENT)
+        badge, color = get_mode_badge(config.PERFORMANCE_MODE)
+        self.tile_mode.set_value(badge, color)
 
         try:
             count = len(user_apps_store.load_user_apps())

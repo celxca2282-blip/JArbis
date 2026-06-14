@@ -23,7 +23,7 @@ ENV_PATH = BASE_DIR / ".env"
 load_dotenv(dotenv_path=ENV_PATH)
 
 # Версия приложения (README, GUI, bug report, Releases)
-VERSION = "1.0.0-beta.1"
+VERSION = "1.0.0-beta.2"
 
 
 # Надёжно преобразует строку из .env в bool (обратная совместимость)
@@ -101,10 +101,19 @@ GUI_SETTINGS_PATH = DATA_DIR / "gui_settings.json"
 # Режим отладки без голосового ввода
 DEBUG_TEXT_MODE = _get_bool("DEBUG_TEXT_MODE", default=False)
 
-# Быстрый режим: только local-команды, лёгкий STT, локальный TTS (Piper HD)
-FAST_MODE = _get_bool("FAST_MODE", default=False)
+# Режим производительности: fast | quality | hard (см. jarvis/core/performance_profiles.py)
+from jarvis.core.performance_profiles import DEFAULT_MODE, normalize_mode, set_performance_mode
 
-# Снимок «качественных» STT-настроек до применения fast profile
+_perf_env = (env_str("PERFORMANCE_MODE", "") or "").strip()
+if _get_bool("FAST_MODE", default=False) and not _perf_env:
+    PERFORMANCE_MODE = normalize_mode("fast")
+else:
+    PERFORMANCE_MODE = normalize_mode(_perf_env or DEFAULT_MODE)
+
+# Обратная совместимость для старого кода
+FAST_MODE = PERFORMANCE_MODE == "fast"
+
+# Снимок STT-настроек «Качество» до применения fast/hard
 _quality_stt_snapshot: dict = {}
 
 # Ключи GUI-настроек (переопределяют .env в runtime)
@@ -164,6 +173,8 @@ def load_gui_settings() -> None:
 
     try:
         if not GUI_SETTINGS_PATH.is_file():
+            _capture_quality_stt_snapshot()
+            set_performance_mode(_config_module(), PERFORMANCE_MODE, _quality_stt_snapshot or None)
             return
 
         import json
@@ -202,7 +213,7 @@ def load_gui_settings() -> None:
         mod = _config_module()
         apply_gui_mapping(mod, mapping, data)
 
-        _apply_fast_mode_from_gui(data)
+        _apply_performance_mode_from_gui(data)
     except Exception as e:
         print(f"Не удалось загрузить gui_settings: {e}")
 
@@ -221,33 +232,33 @@ def _capture_quality_stt_snapshot() -> None:
     _quality_stt_snapshot = {key: getattr(mod, key) for key in _STT_PROFILE_KEYS}
 
 
-def _apply_fast_mode_from_gui(data: dict) -> None:
-    """Применяет fast_mode из gui_settings.json."""
-    from jarvis.core.performance_profiles import set_fast_mode
+def _apply_performance_mode_from_gui(data: dict) -> None:
+    """Применяет performance_mode из gui_settings.json (с миграцией fast_mode)."""
+    from jarvis.core.performance_profiles import parse_mode_from_gui_settings
 
     mod = _config_module()
+    _capture_quality_stt_snapshot()
 
-    if not data.get("fast_mode", False):
-        _capture_quality_stt_snapshot()
-
-    if "fast_mode" not in data:
-        if FAST_MODE:
-            set_fast_mode(mod, True, _quality_stt_snapshot or None)
+    if "performance_mode" not in data and "fast_mode" not in data:
+        set_performance_mode(mod, PERFORMANCE_MODE, _quality_stt_snapshot or None)
         return
 
-    enabled = bool(data.get("fast_mode", False))
-    if enabled and not _quality_stt_snapshot:
+    mode = parse_mode_from_gui_settings(data)
+    set_performance_mode(mod, mode, _quality_stt_snapshot or None)
+
+
+def apply_performance_mode(mode: str) -> None:
+    """Переключает режим fast / quality / hard из GUI."""
+    if not _quality_stt_snapshot:
         _capture_quality_stt_snapshot()
-    set_fast_mode(mod, enabled, _quality_stt_snapshot or None)
+    set_performance_mode(_config_module(), mode, _quality_stt_snapshot or None)
 
 
 def apply_fast_mode(enabled: bool) -> None:
-    """Переключает быстрый режим из GUI."""
-    from jarvis.core.performance_profiles import set_fast_mode
+    """Обратная совместимость: bool → fast / quality."""
+    from jarvis.core.performance_profiles import MODE_FAST, MODE_QUALITY
 
-    if not _quality_stt_snapshot:
-        _capture_quality_stt_snapshot()
-    set_fast_mode(_config_module(), enabled, _quality_stt_snapshot or None)
+    apply_performance_mode(MODE_FAST if enabled else MODE_QUALITY)
 
 
 # Сохраняет GUI-настройки в JSON и опционально в .env

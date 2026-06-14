@@ -10,8 +10,8 @@ assignees: ''
 
 ## Версия
 
-- Релиз: <!-- v1.0.0-beta.1 из GitHub Releases (Pre-release) -->
-- Версия в GUI: левый нижний угол (v…)
+- Релиз: <!-- v1.0.0-beta.2 из GitHub Releases -->
+- Версия в GUI: левый нижний угол · режим: ⚡ FAST / ◆ QUALITY / 🔥 HARD
 - Windows: <!-- 10 / 11, масштаб 100% или 125% -->
 - Установка: <!-- exe zip / install.bat из git -->
 

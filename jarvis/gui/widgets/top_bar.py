@@ -4,6 +4,7 @@
 import customtkinter as ctk
 
 import config
+from jarvis.core.performance_profiles import get_mode_badge
 from jarvis.core.assistant_engine import AssistantEngine
 from jarvis.gui import theme
 
@@ -89,13 +90,12 @@ class TopBar(ctk.CTkFrame):
             self.lbl_engine.configure(text="Остановлен", text_color=theme.COLOR_TEXT_DIM)
             self._engine_dot.configure(fg_color=theme.COLOR_TEXT_MUTED)
 
-        if config.FAST_MODE:
-            self._mode_badge.configure(
-                text="⚡ FAST", text_color=theme.COLOR_WARNING, fg_color=theme.COLOR_WARNING_SOFT
-            )
-        else:
-            self._mode_badge.configure(
-                text="◆ QUALITY", text_color=theme.COLOR_ACCENT, fg_color=theme.COLOR_ACCENT_SOFT
-            )
+        badge, color = get_mode_badge(config.PERFORMANCE_MODE)
+        self._mode_badge.configure(
+            text=badge,
+            text_color=color,
+            fg_color=theme.blend_colors(color, theme.COLOR_BG_ALT, 0.18),
+            width=max(88, len(badge) * 9),
+        )
 
         self.btn_mute.configure(text="🔇" if self.engine.tts_muted else "🔊")

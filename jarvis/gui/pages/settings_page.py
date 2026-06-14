@@ -9,7 +9,9 @@ import jarvis.commands.app_scanner as app_scanner
 import jarvis.commands.user_apps_store as user_apps_store
 import jarvis.voice.stt_module as stt_module
 from jarvis.core.assistant_engine import AssistantEngine
+from jarvis.core.performance_profiles import MODE_FAST, MODE_HARD
 from jarvis.gui import theme
+from jarvis.gui.widgets.mode_picker import ModePickerPanel
 from jarvis.gui.widgets.setting_group import SettingGroup
 
 
@@ -42,23 +44,14 @@ class SettingsPage(ctk.CTkFrame):
             ("MODEL_NAME", "Модель", config.MODEL_NAME),
             ("OPENAI_API_KEY", "API key", config.API_KEY, "password"),
         ])
+
+        self.mode_picker = ModePickerPanel(scroll, initial_mode=config.PERFORMANCE_MODE)
+        self.mode_picker.pack(fill="x")
+
         self._add_group(scroll, "Общее", "⚙", [
             ("auto_start_assistant", "Автозапуск ассистента", True, "bool"),
             ("minimize_to_tray", "Сворачивать в трей", True, "bool"),
-            ("fast_mode", "Быстрый режим", config.FAST_MODE, "bool"),
         ])
-
-        fast_hint = theme.accent_panel(scroll)
-        fast_hint.pack(fill="x", pady=(0, 10))
-        ctk.CTkLabel(
-            fast_hint,
-            text="⚡ Быстрый режим: Whisper small, Piper HD офлайн (без LLM). "
-            "Для диалога и поиска — выключите.",
-            font=theme.FONT_SMALL,
-            text_color=theme.COLOR_TEXT_SEC,
-            wraplength=720,
-            justify="left",
-        ).pack(padx=18, pady=14)
 
         apps_panel = theme.panel_frame(scroll)
         apps_panel.pack(fill="x", pady=10)
@@ -244,17 +237,31 @@ class SettingsPage(ctk.CTkFrame):
             else:
                 payload[key] = var.get()
 
-        if payload.get("fast_mode") and not config.FAST_MODE:
+        new_mode = self.mode_picker.get_mode()
+        old_mode = config.PERFORMANCE_MODE
+        payload["performance_mode"] = new_mode
+        payload.pop("fast_mode", None)
+
+        if new_mode == MODE_FAST and old_mode != MODE_FAST:
             if not messagebox.askokcancel(
-                "Быстрый режим",
-                "Быстрый режим ускоряет отклик, но отключает LLM и свободный диалог.\n"
-                "Доступны только локальные команды и открытие приложений.\n"
-                "Голос будет через Piper HD (локально, без интернета).\n\n"
+                "⚡ Быстрый режим",
+                "Whisper small, Piper HD офлайн, без LLM.\n"
+                "Только локальные команды и открытие приложений.\n\n"
                 "Whisper перезагрузится (~5–15 сек). Продолжить?",
             ):
-                if "fast_mode" in self.vars:
-                    self.vars["fast_mode"].set(False)
-                payload["fast_mode"] = False
+                self.mode_picker.set_mode(old_mode)
+                payload["performance_mode"] = old_mode
+
+        elif new_mode == MODE_HARD and old_mode != MODE_HARD:
+            if not messagebox.askokcancel(
+                "🔥 Хард режим",
+                "Максимальная точность STT: medium+, повтор при «не расслышал», "
+                "дольше слушает микрофон.\n"
+                "Может быть медленнее на CPU. LLM и все функции включены.\n\n"
+                "Whisper перезагрузится (~5–30 сек). Продолжить?",
+            ):
+                self.mode_picker.set_mode(old_mode)
+                payload["performance_mode"] = old_mode
 
         config.save_gui_settings(payload, write_env=False)
         self.engine.reload_config()
