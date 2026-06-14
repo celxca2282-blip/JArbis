@@ -100,8 +100,15 @@ def _cmd_lock_pc() -> str:
     return NEEDS_LOCK_CONFIRMATION
 
 
-# Блокирует рабочую станцию Windows
+# Блокирует рабочую станцию Windows (ctypes, затем rundll32)
 def lock_workstation() -> str:
+    try:
+        import ctypes
+
+        if ctypes.windll.user32.LockWorkStation():
+            return "Система заблокирована, сэр."
+    except Exception as e:
+        logger.warning("LockWorkStation через API: %s", e)
     try:
         os.system("rundll32.exe user32.dll,LockWorkStation")
         return "Система заблокирована, сэр."

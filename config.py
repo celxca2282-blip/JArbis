@@ -10,6 +10,8 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
+from jarvis.config_env import apply_gui_mapping, env_bool, env_float, env_int, env_str
+
 # Корневая папка: при сборке exe — папка с JArbis.exe, иначе корень репозитория
 if getattr(sys, "frozen", False):
     BASE_DIR = Path(sys.executable).resolve().parent
@@ -20,62 +22,62 @@ else:
 ENV_PATH = BASE_DIR / ".env"
 load_dotenv(dotenv_path=ENV_PATH)
 
+# Версия приложения (README, GUI, bug report, Releases)
+VERSION = "1.0.0"
 
-# Надёжно преобразует строку из .env в bool
+
+# Надёжно преобразует строку из .env в bool (обратная совместимость)
 def _get_bool(name: str, default: bool = False) -> bool:
-    raw_value = os.getenv(name)
-    if raw_value is None:
-        return default
+    return env_bool(name, default)
 
-    normalized = raw_value.strip().lower()
-    if normalized in {"1", "true", "yes", "on"}:
-        return True
-    if normalized in {"0", "false", "no", "off"}:
-        return False
-    return default
+
+# Проверяет, задан ли ключ OpenRouter/OpenAI
+def has_api_key() -> bool:
+    return bool((API_KEY or "").strip())
+
 
 # OpenRouter
-API_KEY = os.getenv("OPENAI_API_KEY", "")
-OPENROUTER_BASE_URL = os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
-MODEL_NAME = os.getenv("MODEL_NAME", "deepseek/deepseek-chat")
+API_KEY = env_str("OPENAI_API_KEY", "")
+OPENROUTER_BASE_URL = env_str("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
+MODEL_NAME = env_str("MODEL_NAME", "deepseek/deepseek-chat")
 
 # Распознавание речи (Whisper / faster-whisper)
-STT_MODEL_NAME = os.getenv("STT_MODEL_NAME", "medium")
-STT_COMPUTE_TYPE = os.getenv("STT_COMPUTE_TYPE", "auto").strip().lower()
-STT_FORCE_CPU = _get_bool("STT_FORCE_CPU", default=False)
-STT_BEAM_SIZE = int(os.getenv("STT_BEAM_SIZE", "3"))
-STT_USE_VAD_FILTER = _get_bool("STT_USE_VAD_FILTER", default=True)
-STT_INPUT_DEVICE = os.getenv("STT_INPUT_DEVICE", "").strip()
-STT_SILENCE_DURATION_SEC = float(os.getenv("STT_SILENCE_DURATION_SEC", "1.0"))
-STT_ENERGY_THRESHOLD = float(os.getenv("STT_ENERGY_THRESHOLD", "0.008"))
-STT_WAIT_SPEECH_TIMEOUT_SEC = float(os.getenv("STT_WAIT_SPEECH_TIMEOUT_SEC", "4.0"))
-STT_MAX_RECORD_DURATION_SEC = float(os.getenv("STT_MAX_RECORD_DURATION_SEC", "12.0"))
-STT_POST_ACTIVATION_DELAY_SEC = float(os.getenv("STT_POST_ACTIVATION_DELAY_SEC", "0.35"))
-STT_LOW_CONFIDENCE_THRESHOLD = float(os.getenv("STT_LOW_CONFIDENCE_THRESHOLD", "-0.82"))
-STT_LOW_CONFIDENCE_MARGIN = float(os.getenv("STT_LOW_CONFIDENCE_MARGIN", "0.06"))
-STT_RETRY_ON_LOW_CONFIDENCE = _get_bool("STT_RETRY_ON_LOW_CONFIDENCE", default=False)
-STT_PROMPT_APP_LIMIT = int(os.getenv("STT_PROMPT_APP_LIMIT", "40"))
+STT_MODEL_NAME = env_str("STT_MODEL_NAME", "medium")
+STT_COMPUTE_TYPE = env_str("STT_COMPUTE_TYPE", "auto").lower()
+STT_FORCE_CPU = env_bool("STT_FORCE_CPU", default=False)
+STT_BEAM_SIZE = env_int("STT_BEAM_SIZE", 3)
+STT_USE_VAD_FILTER = env_bool("STT_USE_VAD_FILTER", default=True)
+STT_INPUT_DEVICE = env_str("STT_INPUT_DEVICE", "")
+STT_SILENCE_DURATION_SEC = env_float("STT_SILENCE_DURATION_SEC", 1.0)
+STT_ENERGY_THRESHOLD = env_float("STT_ENERGY_THRESHOLD", 0.008)
+STT_WAIT_SPEECH_TIMEOUT_SEC = env_float("STT_WAIT_SPEECH_TIMEOUT_SEC", 4.0)
+STT_MAX_RECORD_DURATION_SEC = env_float("STT_MAX_RECORD_DURATION_SEC", 12.0)
+STT_POST_ACTIVATION_DELAY_SEC = env_float("STT_POST_ACTIVATION_DELAY_SEC", 0.35)
+STT_LOW_CONFIDENCE_THRESHOLD = env_float("STT_LOW_CONFIDENCE_THRESHOLD", -0.82)
+STT_LOW_CONFIDENCE_MARGIN = env_float("STT_LOW_CONFIDENCE_MARGIN", 0.06)
+STT_RETRY_ON_LOW_CONFIDENCE = env_bool("STT_RETRY_ON_LOW_CONFIDENCE", default=False)
+STT_PROMPT_APP_LIMIT = env_int("STT_PROMPT_APP_LIMIT", 40)
 
 # В exe Whisper на CPU: medium заметно медленнее; small — если модель не задана в .env
 if getattr(sys, "frozen", False) and STT_FORCE_CPU and os.getenv("STT_MODEL_NAME") is None:
     STT_MODEL_NAME = "small"
 
 # Синтез речи
-TTS_ENGINE = os.getenv("TTS_ENGINE", "piper").strip().lower()  # piper | edge | sapi | silero
-PIPER_VOICE = os.getenv("PIPER_VOICE", "ru_RU-ruslan-medium").strip()
-TTS_VOICE = os.getenv("TTS_VOICE", "ru-RU-DmitryNeural")
-TTS_RATE = os.getenv("TTS_RATE", "+0%")
-TTS_PITCH = os.getenv("TTS_PITCH", "+0Hz")
-TTS_SAPI_VOICE = os.getenv("TTS_SAPI_VOICE", "").strip()
-TTS_START_PAUSE_MS = int(os.getenv("TTS_START_PAUSE_MS", "150"))
-SILERO_SPEAKER = os.getenv("SILERO_SPEAKER", "eugene").strip()
-SILERO_MODEL = os.getenv("SILERO_MODEL", "v4_ru").strip()
-SILERO_SPEED = float(os.getenv("SILERO_SPEED", "1.0"))
-EDGE_TTS_LOCALE = os.getenv("EDGE_TTS_LOCALE", "ru").strip().lower()
+TTS_ENGINE = env_str("TTS_ENGINE", "piper").lower()
+PIPER_VOICE = env_str("PIPER_VOICE", "ru_RU-ruslan-medium")
+TTS_VOICE = env_str("TTS_VOICE", "ru-RU-DmitryNeural")
+TTS_RATE = env_str("TTS_RATE", "+0%")
+TTS_PITCH = env_str("TTS_PITCH", "+0Hz")
+TTS_SAPI_VOICE = env_str("TTS_SAPI_VOICE", "")
+TTS_START_PAUSE_MS = env_int("TTS_START_PAUSE_MS", 150)
+SILERO_SPEAKER = env_str("SILERO_SPEAKER", "eugene")
+SILERO_MODEL = env_str("SILERO_MODEL", "v4_ru")
+SILERO_SPEED = env_float("SILERO_SPEED", 1.0)
+EDGE_TTS_LOCALE = env_str("EDGE_TTS_LOCALE", "ru").lower()
 
 # Голосовая активация
-WAKE_WORD_ENGINE = os.getenv("WAKE_WORD_ENGINE", "vosk").strip().lower()
-WAKE_WORD_NAME = os.getenv("WAKE_WORD_NAME", "джарвис").strip()
+WAKE_WORD_ENGINE = env_str("WAKE_WORD_ENGINE", "vosk").lower()
+WAKE_WORD_NAME = env_str("WAKE_WORD_NAME", "джарвис")
 
 # Пути к локальным данным
 DATA_DIR = BASE_DIR / "data"
@@ -86,11 +88,11 @@ LOG_FILE_PATH = DATA_DIR / "jarvis.log"
 
 # Индекс установленных приложений
 APP_INDEX_PATH = DATA_DIR / "apps_index.json"
-APP_INDEX_MAX_AGE_HOURS = float(os.getenv("APP_INDEX_MAX_AGE_HOURS", "24"))
-APP_SCAN_ON_STARTUP = _get_bool("APP_SCAN_ON_STARTUP", default=True)
-APP_SCAN_UWP = _get_bool("APP_SCAN_UWP", default=True)
-APP_FUZZY_MIN_SCORE = float(os.getenv("APP_FUZZY_MIN_SCORE", "0.6"))
-APP_FUZZY_MIN_SCORE_MULTIWORD = float(os.getenv("APP_FUZZY_MIN_SCORE_MULTIWORD", "0.72"))
+APP_INDEX_MAX_AGE_HOURS = env_float("APP_INDEX_MAX_AGE_HOURS", 24.0)
+APP_SCAN_ON_STARTUP = env_bool("APP_SCAN_ON_STARTUP", default=True)
+APP_SCAN_UWP = env_bool("APP_SCAN_UWP", default=True)
+APP_FUZZY_MIN_SCORE = env_float("APP_FUZZY_MIN_SCORE", 0.6)
+APP_FUZZY_MIN_SCORE_MULTIWORD = env_float("APP_FUZZY_MIN_SCORE_MULTIWORD", 0.72)
 
 USER_APPS_PATH = DATA_DIR / "user_apps.json"
 SCENARIOS_PATH = DATA_DIR / "scenarios.json"
@@ -190,24 +192,15 @@ def load_gui_settings() -> None:
             "SILERO_SPEED": ("SILERO_SPEED", float),
             "EDGE_TTS_LOCALE": ("EDGE_TTS_LOCALE", str),
             "STT_MODEL_NAME": ("STT_MODEL_NAME", str),
-            "STT_FORCE_CPU": ("STT_FORCE_CPU", _get_bool),
+            "STT_FORCE_CPU": ("STT_FORCE_CPU", env_bool),
             "STT_INPUT_DEVICE": ("STT_INPUT_DEVICE", str),
             "STT_POST_ACTIVATION_DELAY_SEC": ("STT_POST_ACTIVATION_DELAY_SEC", float),
             "MODEL_NAME": ("MODEL_NAME", str),
             "OPENAI_API_KEY": ("API_KEY", str),
         }
 
-        for key, (attr, caster) in mapping.items():
-            if key not in data or data[key] in (None, ""):
-                continue
-            value = data[key]
-            if caster is _get_bool:
-                value = bool(value)
-            elif caster is float:
-                value = float(value)
-            else:
-                value = str(value).strip()
-            globals()[attr] = value
+        mod = _config_module()
+        apply_gui_mapping(mod, mapping, data)
 
         _apply_fast_mode_from_gui(data)
     except Exception as e:

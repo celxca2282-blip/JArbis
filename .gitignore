@@ -12,6 +12,7 @@ data/user_apps.json
 data/apps_index.json
 data/.tray_hint_shown
 data/temp/
+data/scenarios.json
 data/voices/
 data/torch_hub/
 

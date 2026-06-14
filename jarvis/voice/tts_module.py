@@ -707,6 +707,10 @@ def speak_piper(text: str, *, voice_id: str | None = None) -> bool:
 def speak_silero(text: str, *, speaker: str | None = None, model_id: str | None = None) -> bool:
     from jarvis.voice import silero_tts
 
+    if not silero_tts.can_speak():
+        logger.warning("Silero недоступен: установите requirements-optional-silero.txt")
+        return False
+
     _reset_speech_cancel()
     return silero_tts.speak(
         text,

@@ -439,7 +439,7 @@ class AssistantEngine:
 
         self._set_status(AssistantStatus.THINKING)
         self._log_event("path=LLM (ступень 2)")
-        ai_response = get_ai_response(text)
+        ai_response = self._call_llm(text)
         response, control_executed, memory_executed = handle_post_llm(text, ai_response, engine=self)
 
         self.state.last_response = response
@@ -449,21 +449,58 @@ class AssistantEngine:
             clear_conversation_history()
         return True
 
+    def _call_llm(self, text: str) -> str:
+        """Запрос к LLM с безопасным fallback (не бросает исключения наружу)."""
+        try:
+            return get_ai_response(text)
+        except Exception as e:
+            logger.error("Неожиданная ошибка LLM: %s", e)
+            from jarvis.ai.llm_module import friendly_llm_error
+
+            return friendly_llm_error(e)
+
+    def _prepare_startup(self, *, use_engine_speak: bool = True) -> None:
+        """Общая инициализация для GUI и CLI циклов."""
+        cleanup_temp_audio()
+        if config.APP_SCAN_ON_STARTUP:
+            try:
+                app_scanner.load_or_build_index()
+            except Exception as e:
+                logger.warning("Индекс приложений при старте: %s", e)
+
+        if config.DEBUG_TEXT_MODE:
+            return
+
+        stt_module.init_stt()
+        wake_word = get_wake_word_display_name()
+        greeting = f"Сэр, системы в норме. Скажите «{wake_word}», когда будете готовы."
+        if use_engine_speak:
+            self._speak(greeting)
+        else:
+            speak(greeting)
+
+    def _listen_after_wake(self, *, cli_print: bool = False) -> tuple[str | None, float | None]:
+        """Запись команды после wake-word (общая логика GUI/CLI)."""
+        if cli_print:
+            play_activation_sound()
+            print("Слушаю вас, сэр...")
+        else:
+            self._set_status(AssistantStatus.WAKE)
+            play_activation_sound()
+            self._set_status(AssistantStatus.LISTENING)
+
+        time.sleep(config.STT_POST_ACTIVATION_DELAY_SEC)
+        on_recording = None if cli_print else (lambda: self._set_status(AssistantStatus.THINKING))
+        text, avg_logprob = stt_module.listen_with_confidence(
+            on_level=self._publish_mic_level,
+            on_recording_done=on_recording,
+        )
+        self._publish_mic_level(0.0)
+        return text, avg_logprob
+
     def _run_loop(self) -> None:
         try:
-            cleanup_temp_audio()
-            if config.APP_SCAN_ON_STARTUP:
-                try:
-                    app_scanner.load_or_build_index()
-                except Exception as e:
-                    logger.warning("Индекс приложений при старте: %s", e)
-
-            if not config.DEBUG_TEXT_MODE:
-                stt_module.init_stt()
-                wake_word = get_wake_word_display_name()
-                greeting = f"Сэр, системы в норме. Скажите «{wake_word}», когда будете готовы."
-                self._speak(greeting)
-
+            self._prepare_startup(use_engine_speak=True)
             self._set_status(AssistantStatus.IDLE)
 
             while not self._stop_event.is_set():
@@ -497,15 +534,7 @@ class AssistantEngine:
                 if not woke:
                     continue
 
-                self._set_status(AssistantStatus.WAKE)
-                play_activation_sound()
-                self._set_status(AssistantStatus.LISTENING)
-                time.sleep(config.STT_POST_ACTIVATION_DELAY_SEC)
-                text, avg_logprob = stt_module.listen_with_confidence(
-                    on_level=self._publish_mic_level,
-                    on_recording_done=lambda: self._set_status(AssistantStatus.THINKING),
-                )
-                self._publish_mic_level(0.0)
+                text, avg_logprob = self._listen_after_wake(cli_print=False)
 
                 if not self._process_command_text(text, avg_logprob):
                     self.stop()
@@ -519,19 +548,9 @@ class AssistantEngine:
     def run_cli_loop(self) -> None:
         """Блокирующий консольный режим (как старый main)."""
         logger.info("=== Джарвис — консольный режим ===")
-        cleanup_temp_audio()
-        if config.APP_SCAN_ON_STARTUP:
-            try:
-                app_scanner.load_or_build_index()
-            except Exception as e:
-                logger.warning("Индекс: %s", e)
-
+        self._prepare_startup(use_engine_speak=False)
         if config.DEBUG_TEXT_MODE:
             print("DEBUG_TEXT_MODE. Пишите команды текстом.")
-        else:
-            stt_module.init_stt()
-            wake_word = get_wake_word_display_name()
-            speak(f"Сэр, системы в норме. Скажите «{wake_word}», когда будете готовы.")
 
         self.state.is_running = True
         try:
@@ -548,14 +567,7 @@ class AssistantEngine:
                 else:
                     print(get_wait_mode_message())
                     wait_for_jarvis()
-                    play_activation_sound()
-                    print("Слушаю вас, сэр...")
-                    time.sleep(config.STT_POST_ACTIVATION_DELAY_SEC)
-                    text, avg_logprob = stt_module.listen_with_confidence(
-                        on_level=self._publish_mic_level,
-                        on_recording_done=lambda: self._set_status(AssistantStatus.THINKING),
-                    )
-                    self._publish_mic_level(0.0)
+                    text, avg_logprob = self._listen_after_wake(cli_print=True)
 
                 if not self._process_command_text(text, avg_logprob):
                     break

@@ -15,7 +15,15 @@ from jarvis.ai import memory_module
 from jarvis.commands.command_registry import build_llm_commands_section
 
 logger = logging.getLogger(__name__)
-logger.info("API-ключ в окружении: %s", "да" if config.API_KEY else "нет")
+logger.info("API-ключ в окружении: %s", "да" if config.has_api_key() else "нет")
+
+# Сообщения при недоступности LLM (не падаем, возвращаем текст)
+MSG_NO_API_KEY = (
+    "ИИ недоступен: не задан OPENAI_API_KEY в .env, сэр. "
+    "Локальные команды работают, сложные вопросы — нет."
+)
+MSG_LLM_UNAVAILABLE = "ИИ сейчас недоступен, сэр. Проверьте интернет или ключ OpenRouter."
+
 SYSTEM_PROMPT_BASE = """
 Ты — Джарвис, ИИ-ассистент.
 ТВОИ ПРАВИЛА:
@@ -33,13 +41,9 @@ SYSTEM_PROMPT_BASE = """
    Только латиница в [OPEN_APP:...]. Теги только в квадратных скобках.
 """
 
-# Клиент создаётся один раз при первом запросе
 _client: Optional[OpenAI] = None
-
-# История текущего диалога (последние 10 сообщений = 5 раундов)
 CONVERSATION_HISTORY: list[dict[str, str]] = []
 
-# Фразы для очистки краткосрочной истории диалога (не долговременного профиля)
 _CLEAR_MEMORY_PHRASES = (
     "очисти память",
     "забудь все",
@@ -49,15 +53,27 @@ _CLEAR_MEMORY_PHRASES = (
 )
 
 
+class LlmUnavailableError(Exception):
+    """LLM недоступен (нет ключа, сеть, ошибка API)."""
+
+
+# Возвращает понятный текст ошибки LLM для пользователя
+def friendly_llm_error(exc: Exception | None = None) -> str:
+    if not config.has_api_key():
+        return MSG_NO_API_KEY
+    if exc is not None:
+        logger.error("Ошибка LLM: %s", exc)
+    return MSG_LLM_UNAVAILABLE
+
+
 # Создаёт и возвращает клиент OpenAI для OpenRouter API
 def _get_client() -> OpenAI:
     global _client
     if _client is None:
         api_key = config.API_KEY
         if not api_key:
-            logger.error("Не задан ключ OPENAI_API_KEY в переменных окружения")
-            raise ValueError("Не задан ключ OPENAI_API_KEY в переменных окружения")
-        logger.info("Инициализация клиента OpenRouter (длина ключа: %s)", len(api_key))
+            raise LlmUnavailableError("Не задан OPENAI_API_KEY")
+        logger.info("Инициализация клиента OpenRouter")
         _client = OpenAI(
             api_key=api_key,
             base_url=config.OPENROUTER_BASE_URL,
@@ -70,7 +86,12 @@ def _get_client() -> OpenAI:
     return _client
 
 
-# Формирует системный промпт с актуальным временем и профилем пользователя
+# Сбрасывает кэш клиента (после смены ключа в настройках)
+def reset_client() -> None:
+    global _client
+    _client = None
+
+
 def _build_system_message() -> str:
     current_time = datetime.datetime.now().strftime("%H:%M")
     memory_text = memory_module.get_memory_string()
@@ -85,20 +106,18 @@ def _build_system_message() -> str:
     )
 
 
-# Проверяет, просит ли пользователь очистить историю диалога
 def _is_clear_memory_request(user_text: str) -> bool:
     normalized = user_text.lower().strip().replace("ё", "е")
     return any(phrase.replace("ё", "е") in normalized for phrase in _CLEAR_MEMORY_PHRASES)
 
 
-# Очищает историю диалога (оставляет только системный промпт при следующем запросе)
 def clear_conversation_history() -> None:
     global CONVERSATION_HISTORY
     CONVERSATION_HISTORY.clear()
     logger.info("История диалога очищена после команды управления")
 
 
-# Получает текстовый ответ от модели на сообщение пользователя
+# Получает текстовый ответ от модели; при ошибке — дружелюбный текст, без raise
 def get_ai_response(user_text: str) -> str:
     global CONVERSATION_HISTORY
 
@@ -108,15 +127,17 @@ def get_ai_response(user_text: str) -> str:
             logger.info("История диалога очищена")
             return "Память очищена, сэр. Начинаем с чистого листа."
 
+        if not config.has_api_key():
+            logger.warning("Запрос LLM без API-ключа")
+            return MSG_NO_API_KEY
+
         CONVERSATION_HISTORY.append({"role": "user", "content": user_text})
         CONVERSATION_HISTORY[:] = CONVERSATION_HISTORY[-10:]
 
         messages = [{"role": "system", "content": _build_system_message()}, *CONVERSATION_HISTORY]
-        logger.info(f"Запрос отправлен с контекстом из {len(CONVERSATION_HISTORY)} сообщений")
+        logger.info("Запрос LLM с контекстом из %s сообщений", len(CONVERSATION_HISTORY))
 
         client = _get_client()
-        current_time = datetime.datetime.now().strftime("%H:%M")
-        logger.info("Отправка запроса в OpenRouter (модель: %s, время: %s)", config.MODEL_NAME, current_time)
         response = client.chat.completions.create(
             model=config.MODEL_NAME,
             messages=messages,
@@ -128,14 +149,17 @@ def get_ai_response(user_text: str) -> str:
         CONVERSATION_HISTORY[:] = CONVERSATION_HISTORY[-10:]
 
         return response_text
+    except LlmUnavailableError:
+        return MSG_NO_API_KEY
     except Exception as e:
-        logger.error(f"Ошибка API OpenRouter: {e}")
-        raise
+        logger.error("Ошибка API OpenRouter: %s", e)
+        return friendly_llm_error(e)
 
 
-# Формирует краткий ответ пользователю на основе результатов веб-поиска
 def get_final_answer(search_results: str, original_query: str) -> str:
     try:
+        if not config.has_api_key():
+            return MSG_NO_API_KEY
         client = _get_client()
         response = client.chat.completions.create(
             model=config.MODEL_NAME,
@@ -156,4 +180,4 @@ def get_final_answer(search_results: str, original_query: str) -> str:
         return response_text
     except Exception as e:
         logger.error("Ошибка формирования финального ответа после поиска: %s", e)
-        return "Не удалось обработать результаты поиска, сэр."
+        return friendly_llm_error(e)

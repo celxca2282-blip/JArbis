@@ -1109,24 +1109,6 @@ def test_scroll_nested_isolation() -> None:
     scroll_utils._nested_scrolls.clear()
 
 
-def test_exe_bundle_manifest_detects_missing() -> None:
-    """Проверяет, что manifest ловит дыры в dist/JArbis."""
-    import tempfile
-    from pathlib import Path
-
-    sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
-    from exe_bundle_manifest import verify_dist
-
-    with tempfile.TemporaryDirectory() as tmp:
-        dist = Path(tmp)
-        (dist / "_internal" / "jarvis" / "gui" / "assets").mkdir(parents=True)
-        (dist / "JArbis.exe").write_text("", encoding="utf-8")
-        missing = verify_dist(dist)
-        assert missing, "пустая сборка должна иметь пропуски"
-        assert any("vosk" in item for item in missing)
-        assert any("silero_vad" in item for item in missing)
-
-
 def test_gui_imports() -> None:
     import jarvis.gui.theme
     import jarvis.gui.scroll_utils

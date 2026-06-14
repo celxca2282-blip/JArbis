@@ -2,13 +2,37 @@
 
 Голосовой помощник с wake-word, распознаванием речи (Whisper), LLM (OpenRouter) и управлением Windows.
 
-## Установка
+**Python 3.11 или 3.12** (рекомендуется; 3.14 пока не тестировался).
+
+> Без `OPENAI_API_KEY` в `.env` работают **локальные команды** (настройки, калькулятор, открытие приложений) и **быстрый режим**.  
+> Сложные вопросы к ИИ требуют ключ [OpenRouter](https://openrouter.ai/).
+
+## Установка (разработка)
 
 ```bash
-pip install -r requirements.txt
+python -m venv venv
+# Windows:
+.\venv\Scripts\activate
+pip install -r requirements-dev.txt
 ```
 
-Скопируйте `.env.example` в `.env` и укажите `OPENAI_API_KEY` (ключ OpenRouter).
+Скопируйте `.env.example` → `.env` и укажите `OPENAI_API_KEY` (ключ OpenRouter), если нужен LLM.
+
+Скачайте голос Piper (один раз):
+
+```bash
+python scripts/download_voice.py
+```
+
+Опционально Silero TTS (тяжёлый PyTorch, ~2 ГБ):
+
+```bash
+pip install -r requirements-optional-silero.txt
+```
+
+## Установка (тестер, без git)
+
+Скачайте zip из [GitHub Releases](docs/GITHUB.md) — Python не нужен. См. `КАК_ТЕСТИРОВАТЬ.txt` в архиве.
 
 ## Запуск
 
