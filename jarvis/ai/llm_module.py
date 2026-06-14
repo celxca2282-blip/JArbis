@@ -11,6 +11,7 @@ from typing import Optional
 from openai import OpenAI
 
 import config
+from jarvis.ai.personality_profiles import get_llm_personality_addon, is_shard_hard, uses_openrouter
 from jarvis.ai import memory_module
 from jarvis.commands.command_registry import build_llm_commands_section
 
@@ -96,14 +97,17 @@ def _build_system_message() -> str:
     current_time = datetime.datetime.now().strftime("%H:%M")
     memory_text = memory_module.get_memory_string()
     commands_section = build_llm_commands_section()
-    return (
-        f"{SYSTEM_PROMPT_BASE}\n"
-        f"{commands_section}\n"
-        f"18. Если пользователь говорит 'Меня зовут [Имя]' или 'Я люблю [Хобби]', добавь тег "
-        f"[SAVE_MEMORY:ключ=значение] без лишнего текста вокруг тега.\n"
-        f"{memory_text}\n"
-        f"Текущее время: {current_time}."
-    )
+    personality = get_llm_personality_addon()
+    parts = [
+        SYSTEM_PROMPT_BASE.strip(),
+        personality,
+        commands_section,
+        "18. Если пользователь говорит 'Меня зовут [Имя]' или 'Я люблю [Хобби]', добавь тег "
+        "[SAVE_MEMORY:ключ=значение] без лишнего текста вокруг тега.",
+        memory_text,
+        f"Текущее время: {current_time}.",
+    ]
+    return "\n".join(part for part in parts if part)
 
 
 def _is_clear_memory_request(user_text: str) -> bool:
@@ -122,6 +126,12 @@ def get_ai_response(user_text: str) -> str:
     global CONVERSATION_HISTORY
 
     try:
+        if is_shard_hard():
+            logger.warning("get_ai_response вызван в shard_hard — OpenRouter заблокирован")
+            from jarvis.ai.shard_hard_responder import respond
+
+            return respond(user_text)
+
         if _is_clear_memory_request(user_text):
             CONVERSATION_HISTORY.clear()
             logger.info("История диалога очищена")
@@ -130,6 +140,9 @@ def get_ai_response(user_text: str) -> str:
         if not config.has_api_key():
             logger.warning("Запрос LLM без API-ключа")
             return MSG_NO_API_KEY
+
+        if not uses_openrouter():
+            return MSG_LLM_UNAVAILABLE
 
         CONVERSATION_HISTORY.append({"role": "user", "content": user_text})
         CONVERSATION_HISTORY[:] = CONVERSATION_HISTORY[-10:]
@@ -158,6 +171,10 @@ def get_ai_response(user_text: str) -> str:
 
 def get_final_answer(search_results: str, original_query: str) -> str:
     try:
+        if is_shard_hard():
+            from jarvis.ai.shard_hard_responder import respond
+
+            return respond(original_query)
         if not config.has_api_key():
             return MSG_NO_API_KEY
         client = _get_client()

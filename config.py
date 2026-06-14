@@ -23,7 +23,7 @@ ENV_PATH = BASE_DIR / ".env"
 load_dotenv(dotenv_path=ENV_PATH)
 
 # Версия приложения (README, GUI, bug report, Releases)
-VERSION = "1.0.0-beta.2"
+VERSION = "1.0.0-beta.3"
 
 
 # Надёжно преобразует строку из .env в bool (обратная совместимость)
@@ -116,6 +116,26 @@ FAST_MODE = PERFORMANCE_MODE == "fast"
 # Снимок STT-настроек «Качество» до применения fast/hard
 _quality_stt_snapshot: dict = {}
 
+# Личность: normal | shard_soft | shard_hard
+from jarvis.ai.personality_profiles import DEFAULT_PERSONALITY, normalize_personality
+
+PERSONALITY_MODE = normalize_personality(env_str("PERSONALITY_MODE", "") or DEFAULT_PERSONALITY)
+SHARD_HARD_CONSENT = False
+
+# Локальный пул фраз shard_hard (не в git)
+SHARD_HARD_LINES_PATH = DATA_DIR / "shard_hard_lines.json"
+SHARD_HARD_LINES_EXAMPLE_PATH = DATA_DIR / "shard_hard_lines.json.example"
+
+# Ollama — только для shard_hard (опционально)
+OLLAMA_BASE_URL = env_str("OLLAMA_BASE_URL", "http://127.0.0.1:11434")
+OLLAMA_MODEL = env_str("OLLAMA_MODEL", "")
+OLLAMA_TIMEOUT_SEC = env_float("OLLAMA_TIMEOUT_SEC", 45.0)
+SHARD_HARD_OLLAMA_PROMPT = env_str(
+    "SHARD_HARD_OLLAMA_PROMPT",
+    "Ты грубый локальный голосовой ассистент. Отвечай 1–2 короткими предложениями на русском. "
+    "Без OpenRouter. Пользователь сам включил режим 18+.",
+)
+
 # Ключи GUI-настроек (переопределяют .env в runtime)
 _GUI_SETTING_KEYS = (
     "WAKE_WORD_NAME",
@@ -169,12 +189,13 @@ def load_gui_settings() -> None:
     global TTS_ENGINE, PIPER_VOICE, TTS_VOICE, TTS_RATE, TTS_PITCH, TTS_SAPI_VOICE
     global SILERO_SPEAKER, SILERO_MODEL, SILERO_SPEED, EDGE_TTS_LOCALE
     global STT_MODEL_NAME, STT_FORCE_CPU, STT_INPUT_DEVICE, STT_POST_ACTIVATION_DELAY_SEC
-    global MODEL_NAME, API_KEY
+    global MODEL_NAME, API_KEY, PERSONALITY_MODE, SHARD_HARD_CONSENT
 
     try:
         if not GUI_SETTINGS_PATH.is_file():
             _capture_quality_stt_snapshot()
             set_performance_mode(_config_module(), PERFORMANCE_MODE, _quality_stt_snapshot or None)
+            _apply_personality_from_gui({})
             return
 
         import json
@@ -214,6 +235,7 @@ def load_gui_settings() -> None:
         apply_gui_mapping(mod, mapping, data)
 
         _apply_performance_mode_from_gui(data)
+        _apply_personality_from_gui(data)
     except Exception as e:
         print(f"Не удалось загрузить gui_settings: {e}")
 
@@ -252,6 +274,57 @@ def apply_performance_mode(mode: str) -> None:
     if not _quality_stt_snapshot:
         _capture_quality_stt_snapshot()
     set_performance_mode(_config_module(), mode, _quality_stt_snapshot or None)
+
+
+def _apply_personality_from_gui(data: dict) -> None:
+    """Применяет personality_mode и consent shard_hard."""
+    global PERSONALITY_MODE, SHARD_HARD_CONSENT
+    from jarvis.ai.personality_profiles import parse_personality_from_gui
+
+    if not data:
+        SHARD_HARD_CONSENT = False
+        from jarvis.ai.personality_profiles import PERSONALITY_SHARD_HARD, normalize_personality
+
+        if PERSONALITY_MODE == PERSONALITY_SHARD_HARD:
+            PERSONALITY_MODE = normalize_personality("normal")
+        return
+
+    SHARD_HARD_CONSENT = bool(data.get("shard_hard_consent", False))
+    PERSONALITY_MODE = parse_personality_from_gui(data)
+
+
+def apply_personality_mode(mode: str, *, shard_hard_consent: bool = False) -> None:
+    """Переключает личность из кода или GUI."""
+    global PERSONALITY_MODE, SHARD_HARD_CONSENT
+    from jarvis.ai.personality_profiles import PERSONALITY_SHARD_HARD, normalize_personality
+
+    mode = normalize_personality(mode)
+    if mode == PERSONALITY_SHARD_HARD and not shard_hard_consent:
+        mode = normalize_personality("normal")
+        shard_hard_consent = False
+    PERSONALITY_MODE = mode
+    SHARD_HARD_CONSENT = shard_hard_consent
+
+
+def read_gui_settings_dict() -> dict:
+    """Читает gui_settings.json для merge-обновлений."""
+    import json
+
+    if not GUI_SETTINGS_PATH.is_file():
+        return {}
+    try:
+        with GUI_SETTINGS_PATH.open("r", encoding="utf-8") as file:
+            data = json.load(file)
+        return data if isinstance(data, dict) else {}
+    except Exception:
+        return {}
+
+
+def merge_gui_settings(updates: dict) -> bool:
+    """Дополняет gui_settings без затирания остальных ключей."""
+    data = read_gui_settings_dict()
+    data.update(updates)
+    return save_gui_settings(data)
 
 
 def apply_fast_mode(enabled: bool) -> None:

@@ -15,6 +15,7 @@ data/temp/
 data/scenarios.json
 data/voices/
 data/torch_hub/
+data/shard_hard_lines.json
 
 # Сборка и артефакты
 __pycache__/

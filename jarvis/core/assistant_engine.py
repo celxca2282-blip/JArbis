@@ -25,6 +25,8 @@ from jarvis.core.event_bus import EventBus, EventType
 from jarvis.core.performance_profiles import FAST_MODE_FALLBACK
 from jarvis.voice.tts_module import cleanup_temp_audio, play_activation_sound, reload_tts_settings, speak, stop_speech
 from jarvis.ai.llm_module import clear_conversation_history, get_ai_response, get_final_answer
+from jarvis.ai.personality_profiles import is_shard_hard
+from jarvis.ai.shard_hard_responder import respond as shard_hard_respond
 from jarvis.voice.wake_word_module import (
     clear_wake_stop,
     get_wait_mode_message,
@@ -404,6 +406,13 @@ class AssistantEngine:
         if local_response is not None:
             self._log_event("path=local (ступень 1)")
             final_response = resolve_command_result(local_response, self)
+            if is_shard_hard():
+                failed = "не удалось" in final_response.lower() or "ошибк" in final_response.lower()
+                final_response = shard_hard_respond(
+                    text,
+                    local_result=None if failed else final_response,
+                    local_failed=failed,
+                )
             self.state.last_response = final_response
             self.event_bus.publish(EventType.RESPONSE, {"text": final_response})
             self._speak(final_response)
@@ -426,15 +435,30 @@ class AssistantEngine:
                 app_result = commands_module.open_app_from_stt_text(text)
                 if app_result and "не найдено" not in app_result.lower():
                     self._log_event("path=local (fast open app)")
-                    self.state.last_response = app_result
-                    self.event_bus.publish(EventType.RESPONSE, {"text": app_result})
-                    self._speak(app_result)
+                    out = app_result
+                    if is_shard_hard():
+                        out = shard_hard_respond(text, local_result=app_result)
+                    self.state.last_response = out
+                    self.event_bus.publish(EventType.RESPONSE, {"text": out})
+                    self._speak(out)
                     return True
 
             self._log_event("path=fast (LLM пропущен)")
-            self.state.last_response = FAST_MODE_FALLBACK
+            fallback = FAST_MODE_FALLBACK
+            if is_shard_hard():
+                fallback = shard_hard_respond(text)
+            self.state.last_response = fallback
             self.event_bus.publish(EventType.RESPONSE, {"text": self.state.last_response})
             self._speak(self.state.last_response)
+            return True
+
+        if is_shard_hard():
+            self._set_status(AssistantStatus.THINKING)
+            self._log_event("path=shard_hard (local/ollama)")
+            response = shard_hard_respond(text)
+            self.state.last_response = response
+            self.event_bus.publish(EventType.RESPONSE, {"text": response})
+            self._speak(response)
             return True
 
         self._set_status(AssistantStatus.THINKING)

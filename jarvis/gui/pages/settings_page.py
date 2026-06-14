@@ -12,6 +12,7 @@ from jarvis.core.assistant_engine import AssistantEngine
 from jarvis.core.performance_profiles import MODE_FAST, MODE_HARD
 from jarvis.gui import theme
 from jarvis.gui.widgets.mode_picker import ModePickerPanel
+from jarvis.gui.widgets.personality_picker import PersonalityPickerPanel
 from jarvis.gui.widgets.setting_group import SettingGroup
 
 
@@ -44,6 +45,14 @@ class SettingsPage(ctk.CTkFrame):
             ("MODEL_NAME", "Модель", config.MODEL_NAME),
             ("OPENAI_API_KEY", "API key", config.API_KEY, "password"),
         ])
+
+        gui_data = config.read_gui_settings_dict()
+        self.personality_picker = PersonalityPickerPanel(
+            scroll,
+            initial_mode=config.PERSONALITY_MODE,
+            initial_consent=bool(gui_data.get("shard_hard_consent", config.SHARD_HARD_CONSENT)),
+        )
+        self.personality_picker.pack(fill="x")
 
         self.mode_picker = ModePickerPanel(scroll, initial_mode=config.PERFORMANCE_MODE)
         self.mode_picker.pack(fill="x")
@@ -241,6 +250,9 @@ class SettingsPage(ctk.CTkFrame):
         old_mode = config.PERFORMANCE_MODE
         payload["performance_mode"] = new_mode
         payload.pop("fast_mode", None)
+
+        payload["personality_mode"] = self.personality_picker.get_mode()
+        payload["shard_hard_consent"] = self.personality_picker.get_shard_hard_consent()
 
         if new_mode == MODE_FAST and old_mode != MODE_FAST:
             if not messagebox.askokcancel(

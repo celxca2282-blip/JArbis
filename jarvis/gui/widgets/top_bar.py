@@ -5,6 +5,7 @@ import customtkinter as ctk
 
 import config
 from jarvis.core.performance_profiles import get_mode_badge
+from jarvis.ai.personality_profiles import get_personality_badge
 from jarvis.core.assistant_engine import AssistantEngine
 from jarvis.gui import theme
 
@@ -44,11 +45,23 @@ class TopBar(ctk.CTkFrame):
         self.lbl_subtitle.pack(anchor="w")
 
         # Правая часть — индикаторы
-        right = ctk.CTkFrame(inner, fg_color="transparent")
-        right.pack(side="right")
+        self._right = ctk.CTkFrame(inner, fg_color="transparent")
+        self._right.pack(side="right")
+
+        self._personality_badge = ctk.CTkLabel(
+            self._right,
+            text="◆ NORMAL",
+            font=theme.FONT_CAPTION,
+            text_color=theme.COLOR_ACCENT,
+            fg_color=theme.COLOR_ACCENT_SOFT,
+            corner_radius=6,
+            width=96,
+            height=24,
+        )
+        self._personality_badge.pack(side="right", padx=(8, 0))
 
         self._mode_badge = ctk.CTkLabel(
-            right,
+            self._right,
             text="QUALITY",
             font=theme.FONT_CAPTION,
             text_color=theme.COLOR_ACCENT,
@@ -59,12 +72,12 @@ class TopBar(ctk.CTkFrame):
         )
         self._mode_badge.pack(side="right", padx=(8, 0))
 
-        self._engine_dot = ctk.CTkFrame(right, width=8, height=8, corner_radius=4, fg_color=theme.COLOR_TEXT_MUTED)
+        self._engine_dot = ctk.CTkFrame(self._right, width=8, height=8, corner_radius=4, fg_color=theme.COLOR_TEXT_MUTED)
         self._engine_dot.pack(side="right", padx=(0, 6), pady=10)
-        self.lbl_engine = ctk.CTkLabel(right, text="Остановлен", font=theme.FONT_SMALL, text_color=theme.COLOR_TEXT_DIM)
+        self.lbl_engine = ctk.CTkLabel(self._right, text="Остановлен", font=theme.FONT_SMALL, text_color=theme.COLOR_TEXT_DIM)
         self.lbl_engine.pack(side="right", padx=(12, 0))
 
-        self.btn_mute = theme.icon_button(right, "🔇", self._toggle_mute)
+        self.btn_mute = theme.icon_button(self._right, "🔇", self._toggle_mute)
         self.btn_mute.pack(side="right", padx=6)
 
         self.set_page("dashboard")
@@ -96,6 +109,14 @@ class TopBar(ctk.CTkFrame):
             text_color=color,
             fg_color=theme.blend_colors(color, theme.COLOR_BG_ALT, 0.18),
             width=max(88, len(badge) * 9),
+        )
+
+        p_badge, p_color = get_personality_badge(config.PERSONALITY_MODE)
+        self._personality_badge.configure(
+            text=p_badge,
+            text_color=p_color,
+            fg_color=theme.blend_colors(p_color, theme.COLOR_BG_ALT, 0.18),
+            width=max(96, len(p_badge) * 8),
         )
 
         self.btn_mute.configure(text="🔇" if self.engine.tts_muted else "🔊")
