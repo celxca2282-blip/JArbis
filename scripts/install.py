@@ -107,7 +107,7 @@ def write_launcher_bat() -> None:
         "  pause\r\n"
         "  exit /b 1\r\n"
         ")\r\n"
-        "venv\\Scripts\\python.exe main.py\r\n",
+        "call \"%~dp0launch_hybrid.bat\" %*\r\n",
         encoding="utf-8",
     )
     print(f"\n>>> Создан ярлык запуска: {bat.name}")
@@ -140,12 +140,12 @@ def main() -> None:
     else:
         print("\n>>> venv уже есть — пропуск создания")
 
-    pip = VENV_DIR / "Scripts" / "pip.exe"
     py = venv_python()
 
-    _run([str(pip), "install", "--upgrade", "pip"], step="Обновление pip")
+    # На Windows pip.exe нельзя обновлять напрямую — только через python -m pip
+    _run([str(py), "-m", "pip", "install", "--upgrade", "pip"], step="Обновление pip")
     _run(
-        [str(pip), "install", "-r", str(ROOT / "requirements-dev.txt")],
+        [str(py), "-m", "pip", "install", "-r", str(ROOT / "requirements-dev.txt")],
         step="Установка зависимостей (может занять несколько минут)",
     )
 
