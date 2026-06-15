@@ -276,10 +276,49 @@ def _scan_start_menu_deduped() -> list[AppEntry]:
     return list(seen.values())
 
 
+# Сканирует UWP через PowerShell bridge (win_bridge.ps1)
+def _scan_uwp_via_bridge() -> list[AppEntry] | None:
+    try:
+        from jarvis.core.sidecar_manager import SidecarManager
+
+        data = SidecarManager.instance().powershell_call("list_start_apps")
+        if not data.get("ok"):
+            return None
+
+        entries: list[AppEntry] = []
+        for item in data.get("apps") or []:
+            if not isinstance(item, dict):
+                continue
+            display_name = str(item.get("name", "")).strip()
+            app_id = str(item.get("appId", "")).strip()
+            if not display_name or not app_id:
+                continue
+            normalized_name = normalize_app_name(display_name)
+            if _is_blacklisted(display_name, normalized_name):
+                continue
+            entries.append(
+                AppEntry(
+                    display_name=display_name,
+                    normalized_name=normalized_name,
+                    launch_path=f"shell:AppsFolder\\{app_id}",
+                    source="uwp",
+                )
+            )
+        logger.info("UWP через win_bridge: %s записей", len(entries))
+        return entries
+    except Exception as e:
+        logger.debug("UWP bridge: %s", e)
+        return None
+
+
 # Сканирует UWP-приложения через PowerShell Get-StartApps (UTF-8)
 def _scan_uwp_apps() -> list[AppEntry]:
     if not config.APP_SCAN_UWP:
         return []
+
+    bridged = _scan_uwp_via_bridge()
+    if bridged is not None:
+        return bridged
 
     try:
         command = (

@@ -185,6 +185,8 @@ class SettingsPage(ctk.CTkFrame):
     def _rescan(self) -> None:
         try:
             entries = app_scanner.load_or_build_index(force_rescan=True)
+            if hasattr(self.engine, "reload_app_index"):
+                self.engine.reload_app_index(force_rescan=True)
             self.lbl_index_count.configure(text=f"Записей: {len(entries)}")
             messagebox.showinfo("Индекс", f"Пересканировано: {len(entries)} приложений")
         except Exception as e:
@@ -199,6 +201,8 @@ class SettingsPage(ctk.CTkFrame):
             return
         ok, msg = app_scanner.delete_app_index()
         if ok:
+            if hasattr(self.engine, "reload_app_index"):
+                self.engine.reload_app_index(delete=True)
             self.lbl_index_count.configure(text="Записей: 0 (удалён)")
             messagebox.showinfo("Индекс", msg)
         else:
@@ -239,6 +243,22 @@ class SettingsPage(ctk.CTkFrame):
             self.lbl_index_count.configure(text="Записей: —")
 
     def _save(self) -> None:
+        before = {
+            "performance_mode": config.PERFORMANCE_MODE,
+            "personality_mode": config.PERSONALITY_MODE,
+            "stt_model": config.STT_MODEL_NAME,
+            "stt_force_cpu": config.STT_FORCE_CPU,
+            "stt_input": config.STT_INPUT_DEVICE or "",
+            "stt_delay": str(config.STT_POST_ACTIVATION_DELAY_SEC),
+            "wake_word": config.WAKE_WORD_NAME,
+            "wake_engine": config.WAKE_WORD_ENGINE,
+            "tts_engine": config.TTS_ENGINE,
+            "piper_voice": getattr(config, "PIPER_VOICE", ""),
+            "edge_voice": config.TTS_VOICE,
+            "sapi_voice": getattr(config, "TTS_SAPI_VOICE", ""),
+            "model_name": config.MODEL_NAME,
+            "api_key": config.API_KEY,
+        }
         payload = {}
         for key, var in self.vars.items():
             if isinstance(var, ctk.BooleanVar):
@@ -276,7 +296,31 @@ class SettingsPage(ctk.CTkFrame):
                 payload["performance_mode"] = old_mode
 
         config.save_gui_settings(payload, write_env=False)
-        self.engine.reload_config()
+        config.load_gui_settings()
+        reload_stt = (
+            config.STT_MODEL_NAME != before["stt_model"]
+            or bool(config.STT_FORCE_CPU) != bool(before["stt_force_cpu"])
+            or (config.STT_INPUT_DEVICE or "") != before["stt_input"]
+            or str(config.STT_POST_ACTIVATION_DELAY_SEC) != before["stt_delay"]
+            or config.PERFORMANCE_MODE != before["performance_mode"]
+        )
+        reload_tts = (
+            config.TTS_ENGINE != before["tts_engine"]
+            or getattr(config, "PIPER_VOICE", "") != before["piper_voice"]
+            or config.TTS_VOICE != before["edge_voice"]
+            or getattr(config, "TTS_SAPI_VOICE", "") != before["sapi_voice"]
+            or config.WAKE_WORD_NAME != before["wake_word"]
+            or config.WAKE_WORD_ENGINE != before["wake_engine"]
+        )
+        reload_runtime = (
+            reload_stt
+            or reload_tts
+            or config.PERSONALITY_MODE != before["personality_mode"]
+            or config.MODEL_NAME != before["model_name"]
+            or config.API_KEY != before["api_key"]
+        )
+        if reload_runtime:
+            self.engine.reload_config(reload_stt=reload_stt, reload_tts=reload_tts)
         if self.on_settings_saved:
             self.on_settings_saved(payload)
         messagebox.showinfo("Настройки", "Сохранено")

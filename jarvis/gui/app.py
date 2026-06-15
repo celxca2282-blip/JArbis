@@ -4,12 +4,15 @@
 """
 
 import logging
+import os
+import threading
 from datetime import datetime
 
 import customtkinter as ctk
 
 import config
-from jarvis.core.assistant_engine import AssistantEngine
+from jarvis.core.hybrid_assistant_engine import BootEngine, HybridAssistantEngine
+from jarvis.core.sidecar_manager import SidecarManager
 from jarvis.core.event_bus import EventBus, EventType
 from jarvis.gui import theme
 from jarvis.gui.ensure_assets import ensure_assets
@@ -34,11 +37,13 @@ class JarvisApp:
         theme.apply_theme()
 
         self.event_bus = EventBus.instance()
-        self.engine = AssistantEngine(self.event_bus)
+        # Сначала заглушка — окно рисуется сразу; C++ core подключится в фоне
+        self.engine: BootEngine | HybridAssistantEngine = BootEngine(self.event_bus)
+        self._engine_ready = False
         self._tray_holder = None
         self._minimize_to_tray = True
         self._pages: dict[str, ctk.CTkFrame] = {}
-        self._current_page = "dashboard"
+        self._current_page = ""  # пусто — иначе _show_page("dashboard") не упакует страницу
 
         self.root = ctk.CTk()
         self.root.title("JArbis — голосовой ассистент")
@@ -54,6 +59,12 @@ class JarvisApp:
                 pass
 
         self._build_layout()
+        try:
+            self._hud.lower()
+        except Exception:
+            pass
+        self.root.update_idletasks()
+
         self.root.protocol("WM_DELETE_WINDOW", self._on_close)
         self.root.bind("<Control-s>", lambda e: self._ctrl_save())
 
@@ -67,6 +78,55 @@ class JarvisApp:
 
         self.root.after(80, self._poll_events)
         self.root.after(1000, self._tick_clock)
+        self.root.after(120, self._start_engine_init)
+
+    def _wire_engine(self, engine: BootEngine | HybridAssistantEngine) -> None:
+        """Подключает движок ко всем виджетам после загрузки."""
+        self.engine = engine
+        self.top_bar.engine = engine
+        for page in self._pages.values():
+            if hasattr(page, "engine"):
+                page.engine = engine
+        self.top_bar.refresh()
+        dashboard = self._pages.get("dashboard")
+        if isinstance(dashboard, DashboardPage):
+            dashboard.refresh()
+
+    def _start_engine_init(self) -> None:
+        """Поднимает C++ core в фоне, чтобы не блокировать отрисовку GUI."""
+
+        def worker() -> None:
+            try:
+                os.environ.setdefault("JARBIS_HYBRID", "1")
+                engine = HybridAssistantEngine(self.event_bus)
+                self.root.after(0, lambda: self._on_engine_ready(engine))
+            except Exception as e:
+                logger.exception("Ошибка инициализации движка")
+                self.root.after(0, lambda: self._on_engine_failed(str(e)))
+
+        threading.Thread(target=worker, daemon=True, name="JarvisEngineInit").start()
+
+    def _on_engine_ready(self, engine: HybridAssistantEngine) -> None:
+        self._engine_ready = True
+        self._wire_engine(engine)
+        settings = self._pages.get("settings")
+        if isinstance(settings, SettingsPage) and settings.get_bool_setting("auto_start_assistant"):
+            if not engine.is_running:
+                engine.start()
+        logger.info("GUI: движок подключён")
+        sidecars = SidecarManager.instance().status()
+        logger.info(
+            "Sidecar'ы: Node=%s Go=%s PowerShell=%s",
+            sidecars.get("edge_tts_node"),
+            sidecars.get("llm_proxy_go"),
+            sidecars.get("powershell"),
+        )
+
+    def _on_engine_failed(self, message: str) -> None:
+        dashboard = self._pages.get("dashboard")
+        if isinstance(dashboard, DashboardPage):
+            dashboard._append_log(f"Ошибка движка: {message}")
+        logger.error("GUI: движок недоступен: %s", message)
 
     def _build_layout(self) -> None:
         # HUD-фон под всем интерфейсом
@@ -151,8 +211,12 @@ class JarvisApp:
                 now = datetime.now().strftime("%H:%M")
                 self.lbl_clock.configure(text=now)
                 if self.engine.is_running:
+                    status = self.engine.state.status.value
+                    label = theme.ORB_LABELS.get(status, status)
+                    if status == "idle":
+                        label = theme.ENGINE_READY_LABEL
                     self.lbl_sidebar_status.configure(
-                        text=f"Движок: {self.engine.state.status.value}",
+                        text=f"Движок: {label}",
                         text_color=theme.COLOR_SUCCESS,
                     )
                 else:
@@ -164,21 +228,40 @@ class JarvisApp:
 
     def _show_page(self, key: str) -> None:
         prev = self._current_page
+        page = self._pages.get(key)
+        if prev == key and page is not None:
+            try:
+                if page.winfo_ismapped():
+                    return
+            except Exception:
+                pass
         self._current_page = key
         self.top_bar.set_page(key)
+        for name, item in self._nav_items.items():
+            item.set_active(name == key)
         for name, page in self._pages.items():
             if name == key:
                 page.pack(fill="both", expand=True)
+            else:
+                if name == prev and hasattr(page, "on_hide"):
+                    try:
+                        page.on_hide()
+                    except Exception as e:
+                        logger.warning("on_hide %s: %s", name, e)
+                page.pack_forget()
+        page = self._pages.get(key)
+        if page is not None:
+            try:
                 if hasattr(page, "on_show"):
                     page.on_show()
                 elif hasattr(page, "refresh"):
-                    page.refresh()
-            else:
-                if name == prev and hasattr(page, "on_hide"):
-                    page.on_hide()
-                page.pack_forget()
-        for name, item in self._nav_items.items():
-            item.set_active(name == key)
+                    self.root.after_idle(page.refresh)
+            except Exception as e:
+                logger.error("on_show %s: %s", key, e)
+        try:
+            self.content.update_idletasks()
+        except Exception:
+            pass
 
     def _poll_events(self) -> None:
         try:
@@ -200,6 +283,10 @@ class JarvisApp:
                         idx = event.data.get("step_index", 0)
                         total = event.data.get("step_total", 1)
                         scenarios.progress.set(idx / max(total, 1))
+                elif event.type == EventType.SCENARIO_COMPLETED:
+                    scenarios = self._pages.get("scenarios")
+                    if isinstance(scenarios, ScenariosPage):
+                        scenarios.progress.set(1.0 if event.data.get("success", True) else 0.0)
         except Exception as e:
             logger.error("poll_events: %s", e)
         self.root.after(80, self._poll_events)
@@ -269,8 +356,15 @@ class JarvisApp:
             logger.warning("Не удалось показать подсказку трея: %s", e)
 
     def _quit(self) -> None:
-        self.engine.stop()
+        if hasattr(self.engine, "shutdown"):
+            self.engine.shutdown()
+        else:
+            self.engine.stop()
         stop_tray(self._tray_holder)
+        try:
+            SidecarManager.instance().stop_all()
+        except Exception:
+            pass
         try:
             self._hud.destroy()
         except Exception:
@@ -278,8 +372,5 @@ class JarvisApp:
         self.root.after(0, self.root.destroy)
 
     def run(self) -> None:
-        settings = self._pages.get("settings")
-        if isinstance(settings, SettingsPage) and settings.get_bool_setting("auto_start_assistant"):
-            self.engine.start()
         self.top_bar.refresh()
         self.root.mainloop()

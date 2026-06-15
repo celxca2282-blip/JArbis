@@ -1,0 +1,14 @@
+{
+  "name": "jarbis-edge-tts",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Sidecar Edge-TTS для JArbis (Node.js)",
+  "type": "module",
+  "main": "server.mjs",
+  "scripts": {
+    "start": "node server.mjs"
+  },
+  "dependencies": {
+    "edge-tts": "^1.0.1"
+  }
+}

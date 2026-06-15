@@ -24,7 +24,8 @@ class AppsPage(ctk.CTkFrame):
         super().__init__(master, fg_color="transparent", **kwargs)
         self.engine = engine
         self._search_var = ctk.StringVar(value="")
-        self._search_var.trace_add("write", lambda *_: self.refresh())
+        self._refresh_job: str | None = None
+        self._search_var.trace_add("write", lambda *_: self._schedule_refresh())
 
         wrap = ctk.CTkFrame(self, fg_color="transparent")
         wrap.pack(fill="both", expand=True, padx=theme.PADDING, pady=(8, theme.PADDING))
@@ -45,7 +46,23 @@ class AppsPage(ctk.CTkFrame):
         self.scroll = theme.scroll_area(wrap)
         self.scroll.pack(fill="both", expand=True)
 
+    def _schedule_refresh(self) -> None:
+        if self._refresh_job is not None:
+            try:
+                self.after_cancel(self._refresh_job)
+            except Exception:
+                pass
+        self._refresh_job = self.after(250, self._run_refresh)
+
+    def _run_refresh(self) -> None:
+        self._refresh_job = None
+        self.refresh()
+
+    def on_show(self) -> None:
+        self.refresh()
+
     def refresh(self) -> None:
+        """Перерисовывает список ярлыков."""
         for child in self.scroll.winfo_children():
             child.destroy()
 

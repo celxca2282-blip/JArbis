@@ -43,6 +43,7 @@ SYSTEM_PROMPT_BASE = """
 """
 
 _client: Optional[OpenAI] = None
+_client_base_url: str = ""
 CONVERSATION_HISTORY: list[dict[str, str]] = []
 
 _CLEAR_MEMORY_PHRASES = (
@@ -67,30 +68,47 @@ def friendly_llm_error(exc: Exception | None = None) -> str:
     return MSG_LLM_UNAVAILABLE
 
 
+# Возвращает base_url: Go proxy (если жив) или OpenRouter напрямую
+def _resolve_llm_base_url() -> str:
+    try:
+        from jarvis.core.sidecar_manager import SidecarManager
+
+        sm = SidecarManager.instance()
+        if sm.llm_proxy_available():
+            logger.debug("LLM через Go proxy %s", sm.llm_proxy_base_url)
+            return sm.llm_proxy_base_url
+    except Exception as e:
+        logger.debug("Go LLM proxy недоступен: %s", e)
+    return config.OPENROUTER_BASE_URL
+
+
 # Создаёт и возвращает клиент OpenAI для OpenRouter API
 def _get_client() -> OpenAI:
-    global _client
-    if _client is None:
+    global _client, _client_base_url
+    base_url = _resolve_llm_base_url()
+    if _client is None or _client_base_url != base_url:
         api_key = config.API_KEY
         if not api_key:
             raise LlmUnavailableError("Не задан OPENAI_API_KEY")
-        logger.info("Инициализация клиента OpenRouter")
+        logger.info("Инициализация LLM клиента (%s)", base_url)
         _client = OpenAI(
             api_key=api_key,
-            base_url=config.OPENROUTER_BASE_URL,
+            base_url=base_url,
             default_headers={
                 "HTTP-Referer": "https://github.com/my-jarvis",
                 "X-Title": "My-Jarvis",
             },
         )
-        logger.info("Клиент OpenRouter готов")
+        _client_base_url = base_url
+        logger.info("LLM клиент готов")
     return _client
 
 
 # Сбрасывает кэш клиента (после смены ключа в настройках)
 def reset_client() -> None:
-    global _client
+    global _client, _client_base_url
     _client = None
+    _client_base_url = ""
 
 
 def _build_system_message() -> str:

@@ -511,11 +511,13 @@ def test_yandex_music_known_uwp_appid() -> None:
 
 
 def test_uwp_scan_utf8_powershell() -> None:
-    from unittest.mock import MagicMock
+    from unittest.mock import MagicMock, patch
 
-    with patch.object(app_scanner.subprocess, "run") as mock_run:
-        mock_run.return_value = MagicMock(returncode=0, stdout="[]")
-        app_scanner._scan_uwp_apps()
+    with patch("jarvis.core.sidecar_manager.SidecarManager") as mock_sm:
+        mock_sm.instance.return_value.powershell_call.return_value = {"ok": False}
+        with patch.object(app_scanner.subprocess, "run") as mock_run:
+            mock_run.return_value = MagicMock(returncode=0, stdout="[]")
+            app_scanner._scan_uwp_apps()
 
     ps_args = mock_run.call_args[0][0]
     command_text = ps_args[-1]

@@ -115,12 +115,17 @@ class DashboardPage(ctk.CTkFrame):
         self.refresh_stats()
 
     def _start(self) -> None:
+        self.btn_start.configure(state="disabled")
         self.engine.start()
         self.refresh_stats()
+        self.after(300, lambda: self.btn_start.configure(state="normal"))
 
     def _stop(self) -> None:
+        self.btn_stop.configure(state="disabled")
+        self.orb.set_status("idle")
         self.engine.stop()
         self.refresh_stats()
+        self.after(300, lambda: self.btn_stop.configure(state="normal"))
 
     def _test_mic(self) -> None:
         if self._mic_testing:
@@ -176,6 +181,8 @@ class DashboardPage(ctk.CTkFrame):
         if self.engine.is_running:
             status = self.engine.state.status.value
             label = theme.ORB_LABELS.get(status, status)
+            if status == "idle":
+                label = theme.ENGINE_READY_LABEL
             self.tile_engine.set_value(label, theme.COLOR_SUCCESS)
         else:
             self.tile_engine.set_value("Остановлен", theme.COLOR_TEXT_DIM)

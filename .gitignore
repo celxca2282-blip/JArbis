@@ -46,3 +46,10 @@ releases/
 
 # Большие бинарники (голоса скачиваются скриптом)
 *.onnx
+
+# Polyglot sidecar'ы
+services/**/node_modules/
+services/go_llm_proxy/go_llm_proxy.exe
+
+# Логи установщиков / временные
+aqtinstall.log

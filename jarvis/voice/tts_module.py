@@ -588,6 +588,31 @@ def _play_audio(file_path: Path) -> None:
 
 
 # Озвучивает текст через edge-tts с опциональными переопределениями (превью в GUI)
+def _speak_edge_via_node(
+    text: str,
+    *,
+    voice: str | None = None,
+    rate: str | None = None,
+    pitch: str | None = None,
+) -> bool:
+    """Node.js sidecar (порт 17848) — быстрее и изолирован от Python GIL."""
+    try:
+        from jarvis.core.sidecar_manager import SidecarManager
+
+        mp3 = SidecarManager.instance().speak_edge(
+            text,
+            voice or config.TTS_VOICE,
+            rate or config.TTS_RATE,
+            pitch or config.TTS_PITCH,
+        )
+        if mp3 and Path(mp3).is_file() and Path(mp3).stat().st_size >= 128:
+            _play_audio(Path(mp3))
+            return True
+    except Exception as e:
+        logger.debug("Node Edge-TTS: %s", e)
+    return False
+
+
 def speak_edge(
     text: str,
     *,
@@ -607,6 +632,11 @@ def speak_edge(
     temp_audio_path = _create_temp_audio_path()
 
     try:
+        if _speak_edge_via_node(prepared, voice=voice, rate=rate, pitch=pitch):
+            if _speech_cancel.is_set():
+                return
+            return
+
         asyncio.run(_generate_audio(prepared, temp_audio_path, voice=voice, rate=rate, pitch=pitch))
 
         if _speech_cancel.is_set():

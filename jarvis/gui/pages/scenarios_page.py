@@ -298,8 +298,18 @@ class ScenariosPage(ctk.CTkFrame):
         if not self._selected_id:
             messagebox.showwarning("Сценарий", "Сначала сохраните сценарий")
             return
-        self.progress.set(0.2)
-        result = self.engine.run_scenario(self._selected_id)
+        self.progress.set(0.05)
+
+        def on_done(result: str) -> None:
+            self.after(0, lambda: self._scenario_finished(result))
+
+        if hasattr(self.engine, "run_scenario_async"):
+            self.engine.run_scenario_async(self._selected_id, on_done)
+        else:
+            result = self.engine.run_scenario(self._selected_id)
+            self._scenario_finished(result)
+
+    def _scenario_finished(self, result: str) -> None:
         self.progress.set(1.0)
         messagebox.showinfo("Сценарий", result)
 

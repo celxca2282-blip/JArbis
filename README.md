@@ -11,6 +11,10 @@
 
 **Python 3.11 или 3.12** (рекомендуется; 3.14 пока не тестировался).
 
+> **v1.0.0-beta.6 — гибридный polyglot-режим:** Python HUD + C++ движок (`JArbisC++`) + опционально Node (Edge-TTS), Go (LLM proxy), PowerShell (Windows).  
+> Запуск: **`ZAPUSTIT.bat`** или **`ЗАПУСТИТЬ.bat`** (после `install.bat`).  
+> Чеклист тестирования: **[docs/HYBRID_SETUP.md](docs/HYBRID_SETUP.md)** · архитектура: **[docs/POLYGLOT.md](docs/POLYGLOT.md)**
+
 > Без `OPENAI_API_KEY` в `.env` работают **локальные команды** (настройки, калькулятор, открытие приложений) и **быстрый режим**.  
 > Сложные вопросы к ИИ требуют ключ [OpenRouter](https://openrouter.ai/).
 
@@ -83,9 +87,18 @@ Python не нужен. Подробнее: `КАК_ТЕСТИРОВАТЬ.txt` 
 ## Запуск
 
 ```bash
-python main.py          # GUI (по умолчанию) — тёмный интерфейс Jarvis HUD
+python main.py          # GUI (по умолчанию) — polyglot HUD
 python main.py --cli    # консольный режим (отладка)
 ```
+
+**Windows (рекомендуется):**
+
+```bat
+ZAPUSTIT.bat            # dev: system python или venv
+ЗАПУСТИТЬ.bat           # после install.bat (venv)
+```
+
+Для полной скорости голоса соберите C++ движок в соседней папке `JArbisC++` (`scripts\setup.bat`). Без него — автоматический fallback на Python.
 
 Скажите wake-word **«Джарвис»**, затем команду. Для выхода: «стоп», «выход», «пока».
 

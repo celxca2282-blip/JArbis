@@ -6,4 +6,4 @@ if not exist "venv\Scripts\python.exe" (
   pause
   exit /b 1
 )
-venv\Scripts\python.exe main.py
+call "%~dp0launch_hybrid.bat" %*

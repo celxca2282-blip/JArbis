@@ -16,7 +16,27 @@
 | **Пользователь / тестер** | Скачивает zip, тестирует, Issues (баг / feedback) |
 
 Python и git **не нужны** для использования exe — только браузер и аккаунт GitHub (для Issues).
----
+
+### Два репозитория (beta.6+, гибрид)
+
+| Репо | Папка | Содержимое |
+|------|-------|------------|
+| **JArbis** | `C:\JArbis` | Python HUD, sidecar'ы, гибридный клиент |
+| **JArbisCpp** | `C:\JArbisC++` | C++ движок `jarbis.exe`, CMake |
+
+Клонируйте **рядом** на диске. Первый push C++:
+
+```powershell
+cd C:\JArbisC++
+git init
+git add .
+git commit -m "Initial commit: JArbis C++ engine"
+git branch -M main
+git remote add origin https://github.com/ТВОЙ_ЛОГИН/JArbisCpp.git
+git push -u origin main
+```
+
+Чеклист перед push: **[HYBRID_SETUP.md](HYBRID_SETUP.md)**
 
 ## Шаг 1. Установить Git (один раз, на твоём ПК)
 

@@ -30,8 +30,12 @@ from jarvis.core.assistant_engine import handle_post_llm as _handle_post_llm
 
 def run_gui() -> None:
     """Запуск премиального HUD-интерфейса."""
+    from jarvis.core.sidecar_manager import SidecarManager
     from jarvis.gui.app import JarvisApp
 
+    sm = SidecarManager.instance()
+    sm.start_all()
+    sm.warmup(max_wait=4.0)
     JarvisApp().run()
 
 
@@ -39,7 +43,11 @@ def run_cli() -> None:
     """Консольный режим без GUI (как раньше)."""
     from jarvis.core.assistant_engine import AssistantEngine
     from jarvis.core.event_bus import EventBus
+    from jarvis.core.sidecar_manager import SidecarManager
 
+    sm = SidecarManager.instance()
+    sm.start_all()
+    sm.warmup(max_wait=3.0)
     EventBus.reset()
     engine = AssistantEngine(EventBus.instance())
     engine.run_cli_loop()
