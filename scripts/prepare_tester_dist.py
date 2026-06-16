@@ -48,6 +48,7 @@ TESTER_GUIDE = """JArbis — гайд для тестера
 Обязательно должны лежать рядом:
   • JArbis.exe
   • папка _internal
+  • папка engine\ (если есть jarbis.exe — быстрый C++ движок)
   • файл .env.example
   • этот файл (КАК_ТЕСТИРОВАТЬ.txt)
 
@@ -109,7 +110,7 @@ TESTER_GUIDE = """JArbis — гайд для тестера
 --------------------------------------
   • Это beta — баги возможны, feedback очень помогает.
   • Скачать обновление beta:
-      https://github.com/celxca2282-blip/JArbis/releases/tag/v1.0.0-beta.1
+      https://github.com/celxca2282-blip/JArbis/releases/tag/v1.0.0-beta.6
   • GitHub Issues (нужен аккаунт):
       https://github.com/celxca2282-blip/JArbis/issues
   • Шаблон «Сообщение о баге» + приложи data/jarvis.log
@@ -165,6 +166,8 @@ if not exist "JArbis.exe" (
     pause
     exit /b 1
 )
+set JARBIS_HYBRID=1
+if exist "%~dp0engine\\jarbis.exe" set JARBIS_CPP_EXE=%~dp0engine\\jarbis.exe
 start "" "JArbis.exe"
 """
 
@@ -242,6 +245,19 @@ def prepare_tester_dist(dist_dir: Path = DIST_DIR) -> list[str]:
     guide_path.write_text(TESTER_GUIDE, encoding="utf-8")
 
     _write_dist_launchers(dist_dir)
+
+    # Опционально: C++ движок рядом с exe (гибрид без отдельной установки JArbisCpp)
+    cpp_candidates = [
+        ROOT.parent / "JArbisC++" / "build" / "Release" / "jarbis.exe",
+        Path(r"C:\JArbisC++\build\Release\jarbis.exe"),
+    ]
+    for cpp_exe in cpp_candidates:
+        if cpp_exe.is_file():
+            engine_dir = dist_dir / "engine"
+            engine_dir.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(cpp_exe, engine_dir / "jarbis.exe")
+            print(f"В bundle добавлен C++ движок: {engine_dir / 'jarbis.exe'}")
+            break
 
     old_guide = dist_dir / "КАК_ЗАПУСТИТЬ.txt"
     if old_guide.is_file():
